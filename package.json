@@ -1,0 +1,18 @@
+{
+  "name": "build-meta",
+  "version": "0.0.1",
+  "author": "Chester Rivas <chester.rivas@gmail.com>",
+  "contributors": [
+    "Chester Rivas <chester.rivas@gmail.com>"
+  ],
+  "dependencies": {
+    "jsonfile": "5.0.0",
+    "git-branch": "2.0.1",
+    "moment": "2.22.2",
+    "moment-timezone": "0.5.23"
+  },
+  "scripts": {
+    "build": "node ./bin/generate-meta.js",
+    "postinstall": "echo 'build-meta is installed'"
+  }
+}
