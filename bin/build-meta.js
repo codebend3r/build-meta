@@ -16,20 +16,20 @@ function getTime() {
 }
 
 function showBuildMeta() {
-  const env = process.argv[2];
+  const buildEnv = process.argv[2];
   branch((branchErr, branchName) => {
     branchErr && console.warn(`GIT GET CURRENT BRANCH ERR: ${branchErr}`);
 
-    childProcess.exec('git log -1 --pretty=format:\'%an\'', (processErr, author) => {
+    childProcess.exec('git log -1 --pretty=format:\'%an\'', (processErr, lastCommitAuthor) => {
 
       processErr && console.warn(`PROCESS EXEC ERROR: ${processErr}`);
 
       const meta = {
         version: pjson.version,
         buildDate: getTime(),
-        buildEnv: env,
+        buildEnv,
         branchName,
-        lastCommitBy: author
+        lastCommitAuthor
       };
   
       console.log(meta);
