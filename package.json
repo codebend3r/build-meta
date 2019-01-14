@@ -11,8 +11,8 @@
     "moment": "2.22.2",
     "moment-timezone": "0.5.23"
   },
-  "scripts": {
-    "build": "node ./bin/generate-meta.js",
+  "bin": {
+    "build-meta": "build-meta.js",
     "postinstall": "echo 'build-meta is installed'"
   }
 }
