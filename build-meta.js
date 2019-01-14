@@ -1,3 +1,7 @@
+#! /usr/bin/env node
+console.log("build meta running")
+
+/*
 const jsonfile = require('jsonfile');
 const branch = require('git-branch');
 const moment = require('moment');
@@ -44,3 +48,4 @@ function showBuildMeta() {
 }
 
 showBuildMeta();
+*/
