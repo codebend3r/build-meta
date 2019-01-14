@@ -1,13 +1,14 @@
 #! /usr/bin/env node
-console.log("build meta running")
 
-/*
+require('moment-timezone');
+const cwd = require('path').resolve();
 const jsonfile = require('jsonfile');
 const branch = require('git-branch');
 const moment = require('moment');
-require('moment-timezone');
 const childProcess = require('child_process');
-const pjson = require('../package.json');
+const localPackageJson = require(`${cwd}/package.json`);
+
+const buildEnv = process.env.NODE_ENV || process.env.PROFILE || 'development';
 
 const file = './src/meta.json';
 
@@ -20,7 +21,6 @@ function getTime() {
 }
 
 function showBuildMeta() {
-  const buildEnv = process.argv[2];
   branch((branchErr, branchName) => {
     branchErr && console.warn(`GIT GET CURRENT BRANCH ERR: ${branchErr}`);
 
@@ -29,15 +29,15 @@ function showBuildMeta() {
       processErr && console.warn(`PROCESS EXEC ERROR: ${processErr}`);
 
       const meta = {
-        version: pjson.version,
+        version: localPackageJson.version,
         buildDate: getTime(),
         buildEnv,
         branchName,
         lastCommitAuthor
       };
-  
+
       console.log(meta);
-  
+
       jsonfile.writeFile(file, meta, {
         spaces: 2
       }, (err) => {
@@ -48,4 +48,3 @@ function showBuildMeta() {
 }
 
 showBuildMeta();
-*/
