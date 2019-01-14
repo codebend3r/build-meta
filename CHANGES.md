@@ -1,3 +1,11 @@
+2019-01-14, Version 0.0.3
+=========================
+
+ * fixing process env (Chester Rivas)
+
+ * attemping to make build-meta executable (Chester Rivas)
+
+
 2019-01-14, Version 0.0.2
 =========================
 
