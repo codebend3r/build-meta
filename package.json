@@ -5,6 +5,7 @@
   "contributors": [
     "Chester Rivas <chester.rivas@gmail.com>"
   ],
+  "main": "lib/cli.js",
   "dependencies": {
     "git-branch": "2.0.1",
     "jsonfile": "5.0.0",
@@ -14,7 +15,6 @@
     "yargs": "12.0.5"
   },
   "bin": {
-    "build-meta": "bin/build-meta.js",
-    "postinstall": "echo 'build-meta is installed SUCESSFULLY'"
+    "build-meta": "bin/build-meta.js"
   }
 }
