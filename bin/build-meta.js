@@ -15,12 +15,7 @@ const localPackageJson = require(`${commonPath}/package.json`);
 const buildEnv = argv.env || process.env.NODE_ENV || process.env.PROFILE || 'development';
 const srcFolder = slashes(argv['src-folder']);
 
-console.log('buildEnv:', buildEnv);
-console.log('srcFolder:', srcFolder);
-
 const file = `${commonPath}/${srcFolder}/meta.json`;
-
-console.log('file:', file);
 
 function getTime() {
   const now = new Date();
