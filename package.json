@@ -9,10 +9,12 @@
     "git-branch": "2.0.1",
     "jsonfile": "5.0.0",
     "moment": "2.22.2",
-    "moment-timezone": "0.5.23"
+    "moment-timezone": "0.5.23",
+    "remove-trailing-slash": "0.1.0",
+    "yargs": "12.0.5"
   },
   "bin": {
-    "build-meta": "build-meta.js",
-    "postinstall": "echo 'build-meta is installed'"
+    "build-meta": "bin/build-meta.js",
+    "postinstall": "echo 'build-meta is installed SUCESSFULLY'"
   }
 }
