@@ -1,16 +1,26 @@
 #! /usr/bin/env node
 
 require('moment-timezone');
+const argv = require('yargs').argv
+const branch = require('git-branch');
+const childProcess = require('child_process');
+const slashes = require('remove-trailing-slash');
 const cwd = require('path').resolve();
 const jsonfile = require('jsonfile');
-const branch = require('git-branch');
 const moment = require('moment');
-const childProcess = require('child_process');
-const localPackageJson = require(`${cwd}/package.json`);
 
-const buildEnv = process.env.NODE_ENV || process.env.PROFILE || 'development';
+const commonPath = slashes(cwd);
+const localPackageJson = require(`${commonPath}/package.json`);
 
-const file = './src/meta.json';
+const buildEnv = argv.env || process.env.NODE_ENV || process.env.PROFILE || 'development';
+const srcFolder = slashes(argv['src-folder']);
+
+console.log('buildEnv:', buildEnv);
+console.log('srcFolder:', srcFolder);
+
+const file = `${commonPath}/${srcFolder}/meta.json`;
+
+console.log('file:', file);
 
 function getTime() {
   const now = new Date();
