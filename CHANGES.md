@@ -1,4 +1,6 @@
-2019-01-15, Version 0.0.4
+
+
+2019-01-14, Version 0.0.4
 =========================
 
  * moved exec build-meta to bin folder (Chester Rivas)
