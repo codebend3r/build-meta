@@ -1,4 +1,10 @@
-2019-01-15, Version 0.0.6
+2019-01-15, Version 0.0.7
+=========================
+
+ * added lib cli.js (Chester Rivas)
+
+
+2019-01-14, Version 0.0.6
 =========================
 
  * removing console logs (Chester Rivas)
