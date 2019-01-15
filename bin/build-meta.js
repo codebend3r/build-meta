@@ -8,6 +8,7 @@ const slashes = require('remove-trailing-slash');
 const cwd = require('path').resolve();
 const jsonfile = require('jsonfile');
 const moment = require('moment');
+const buildMetaCli = require('../lib/cli');
 
 const commonPath = slashes(cwd);
 const localPackageJson = require(`${commonPath}/package.json`);
@@ -42,6 +43,8 @@ function showBuildMeta() {
       };
 
       console.log(meta);
+
+      buildMetaCli.setMetaData(meta);
 
       jsonfile.writeFile(file, meta, {
         spaces: 2
