@@ -8,6 +8,7 @@
   "main": "lib/cli.js",
   "dependencies": {
     "git-branch": "2.0.1",
+    "git-last-commit": "0.3.0",
     "jsonfile": "5.0.0",
     "moment": "2.22.2",
     "moment-timezone": "0.5.23",

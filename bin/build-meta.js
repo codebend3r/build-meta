@@ -8,7 +8,7 @@ const slashes = require('remove-trailing-slash');
 const cwd = require('path').resolve();
 const jsonfile = require('jsonfile');
 const moment = require('moment');
-const buildMetaCli = require('../lib/cli');
+const git = require('git-last-commit');
 
 const commonPath = slashes(cwd);
 const localPackageJson = require(`${commonPath}/package.json`);
@@ -27,29 +27,35 @@ function getTime() {
 }
 
 function showBuildMeta() {
-  branch((branchErr, branchName) => {
-    branchErr && console.warn(`GIT GET CURRENT BRANCH ERR: ${branchErr}`);
+  let lastCommit = null;
+  git.getLastCommit((err, commit) => {
+    lastCommit = commit;
 
-    childProcess.exec('git log -1 --pretty=format:\'%an\'', (processErr, lastCommitAuthor) => {
-
-      processErr && console.warn(`PROCESS EXEC ERROR: ${processErr}`);
-
-      const meta = {
-        version: localPackageJson.version,
-        buildDate: getTime(),
-        buildEnv,
-        branchName,
-        lastCommitAuthor
-      };
-
-      console.log(meta);
-
-      buildMetaCli.setMetaData(meta);
-
-      jsonfile.writeFile(file, meta, {
-        spaces: 2
-      }, (err) => {
-        err && console.warn(`WRITE FILE ERR: ${err}`);
+    branch((branchErr, branchName) => {
+      branchErr && console.warn(`GIT GET CURRENT BRANCH ERR: ${branchErr}`);
+  
+      childProcess.exec('git log -1 --pretty=format:\'%an\'', (processErr, lastCommitAuthor) => {
+  
+        processErr && console.warn(`PROCESS EXEC ERROR: ${processErr}`);
+  
+        const meta = {
+          version: localPackageJson.version,
+          buildDate: getTime(),
+          buildEnv,
+          branchName,
+          lastCommit: {
+            lastCommitSubject: lastCommit.sanitizedSubject,
+            lastCommitAuthor
+          }
+        };
+  
+        console.log('META:', meta);
+  
+        jsonfile.writeFile(file, meta, {
+          spaces: 2
+        }, (err) => {
+          err && console.warn(`WRITE FILE ERR: ${err}`);
+        });
       });
     });
   });
