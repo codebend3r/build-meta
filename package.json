@@ -7,6 +7,7 @@
   ],
   "main": "lib/cli.js",
   "dependencies": {
+    "await-exec": "0.1.2",
     "git-branch": "2.0.1",
     "git-last-commit": "0.3.0",
     "jsonfile": "5.0.0",
