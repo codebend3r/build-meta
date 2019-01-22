@@ -12,8 +12,6 @@ function setMetaDataToWindow({
   namespace,
   meta,
 }) {
-  console.log('namespace:', namespace);
-  console.log('meta:', meta);
   if (!window) {
     return false;
   } else {
