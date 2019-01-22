@@ -1,4 +1,10 @@
-2019-01-22, Version 0.0.8
+2019-01-22, Version 0.0.9
+=========================
+
+ * moved to src folder (Chester Rivas)
+
+
+2019-01-21, Version 0.0.8
 =========================
 
  * moved cli to dist folder (Chester Rivas)
