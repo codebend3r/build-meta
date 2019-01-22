@@ -1,3 +1,13 @@
+2019-01-22, Version 0.0.8
+=========================
+
+ * moved cli to dist folder (Chester Rivas)
+
+ * implementing last commit data (Chester Rivas)
+
+ * updated some scripts (Chester Rivas)
+
+
 2019-01-15, Version 0.0.7
 =========================
 
