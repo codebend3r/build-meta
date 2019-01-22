@@ -27,34 +27,40 @@ function getTime() {
 }
 
 function showBuildMeta() {
-  let lastCommit = null;
-  git.getLastCommit((err, commit) => {
-    lastCommit = commit;
+  let lastCommitHash = null;
+  let lastCommitAuthor = null;
+  let branchName = null;
 
-    branch((branchErr, branchName) => {
-      branchErr && console.warn(`GIT GET CURRENT BRANCH ERR: ${branchErr}`);
+  branch((bError, bName) => {
+    bError && console.warn(`git current branch error: ${bError}`);
+
+    branchName = bName;
+
+    childProcess.exec('git rev-parse HEAD', (commitHashError, commitHash) => {
+      commitHashError && console.warn(`process exec error: ${commitHashError}`);
   
-      childProcess.exec('git log -1 --pretty=format:\'%an\'', (processErr, lastCommitAuthor) => {
+      lastCommitHash = commitHash;
   
-        processErr && console.warn(`PROCESS EXEC ERROR: ${processErr}`);
-  
+      childProcess.exec('git log -1 --pretty=format:\'%an\'', (commitAuthorError, commitAuthor) => {
+        commitAuthorError && console.warn(`process exec error: ${commitAuthorError}`);
+    
+        lastCommitAuthor = commitAuthor;
+
         const meta = {
           version: localPackageJson.version,
           buildDate: getTime(),
           buildEnv,
           branchName,
-          lastCommit: {
-            lastCommitSubject: lastCommit.sanitizedSubject,
-            lastCommitAuthor
-          }
+          lastCommitAuthor,
+          lastCommitHash,
         };
-  
-        console.log('META:', meta);
-  
+      
+        console.info({ meta });
+      
         jsonfile.writeFile(file, meta, {
           spaces: 2
         }, (err) => {
-          err && console.warn(`WRITE FILE ERR: ${err}`);
+          err && console.warn(`write file error: ${err}`);
         });
       });
     });
