@@ -5,17 +5,20 @@
   "contributors": [
     "Chester Rivas <chester.rivas@gmail.com>"
   ],
-  "main": "./lib/cli.js",
+  "main": "src/cli.js",
   "dependencies": {
     "git-branch": "2.0.1",
     "git-last-commit": "0.3.0",
     "jsonfile": "5.0.0",
-    "moment": "2.22.2",
+    "moment": "2.24.0",
     "moment-timezone": "0.5.23",
     "remove-trailing-slash": "0.1.0",
     "yargs": "12.0.5"
   },
+  "scripts": {
+    "check": "npx npm-check -s -u"
+  },
   "bin": {
-    "build-meta": "./bin/build-meta.js"
+    "build-meta": "bin/build-meta.js"
   }
 }
