@@ -3,12 +3,13 @@
 require('moment-timezone');
 const argv = require('yargs').argv
 const branch = require('git-branch');
+const branchName = require('branch-name');
 const childProcess = require('child_process');
 const slashes = require('remove-trailing-slash');
 const cwd = require('path').resolve();
 const jsonfile = require('jsonfile');
 const moment = require('moment');
-const git = require('git-last-commit');
+const currentBranchName = require('current-git-branch');
 
 const commonPath = slashes(cwd);
 const localPackageJson = require(`${commonPath}/package.json`);
@@ -29,13 +30,20 @@ function getTime() {
 function showBuildMeta() {
   let lastCommitHash = null;
   let lastCommitAuthor = null;
-  let branchName = null;
 
-  branch((bError, bName) => {
-    bError && console.warn(`git current branch error: ${bError}`);
+  // branch((bError, bName) => {
+  //   bError && console.warn(`git current branch error: ${bError}`);
 
-    branchName = bName;
+  //   localBranchName = bName;
 
+  //   branchName.get().then((name) => {
+
+  //     localBranchName = bName;
+
+  //   });
+  // });
+
+  childProcess.exec('git branch | grep \* | cut -d \' \' -f2', (branchName, commitHash) => {
     childProcess.exec('git rev-parse HEAD', (commitHashError, commitHash) => {
       commitHashError && console.warn(`process exec error: ${commitHashError}`);
   
@@ -45,12 +53,12 @@ function showBuildMeta() {
         commitAuthorError && console.warn(`process exec error: ${commitAuthorError}`);
     
         lastCommitAuthor = commitAuthor;
-
+  
         const meta = {
           version: localPackageJson.version,
           buildDate: getTime(),
           buildEnv,
-          branchName,
+          branchName: currentBranchName(),
           lastCommitAuthor,
           lastCommitHash,
         };
