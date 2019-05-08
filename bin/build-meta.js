@@ -2,8 +2,6 @@
 
 require('moment-timezone');
 const argv = require('yargs').argv
-const branch = require('git-branch');
-const branchName = require('branch-name');
 const childProcess = require('child_process');
 const slashes = require('remove-trailing-slash');
 const cwd = require('path').resolve();
@@ -30,18 +28,6 @@ function getTime() {
 function showBuildMeta() {
   let lastCommitHash = null;
   let lastCommitAuthor = null;
-
-  // branch((bError, bName) => {
-  //   bError && console.warn(`git current branch error: ${bError}`);
-
-  //   localBranchName = bName;
-
-  //   branchName.get().then((name) => {
-
-  //     localBranchName = bName;
-
-  //   });
-  // });
 
   childProcess.exec('git branch | grep \* | cut -d \' \' -f2', (branchName, commitHash) => {
     childProcess.exec('git rev-parse HEAD', (commitHashError, commitHash) => {
