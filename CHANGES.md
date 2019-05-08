@@ -1,4 +1,10 @@
-2019-01-22, Version 0.0.9
+2019-05-08, Version 0.0.10
+==========================
+
+ * added new plugin for getting git branch name (Chester Rivas)
+
+
+2019-01-21, Version 0.0.9
 =========================
 
  * moved to src folder (Chester Rivas)
