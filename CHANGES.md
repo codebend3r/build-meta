@@ -1,3 +1,9 @@
+2019-05-08, Version 0.0.11
+==========================
+
+ * fixing missing npm modules (Chester Rivas)
+
+
 2019-05-08, Version 0.0.10
 ==========================
 
