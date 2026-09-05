@@ -1,24 +1,22 @@
 {
   "name": "build-meta",
   "version": "0.0.12",
+  "description": "Writes a meta.json with the package version, build date, environment, git branch, and last commit for the current project",
   "author": "Chester Rivas <chester.rivas@gmail.com>",
   "contributors": [
     "Chester Rivas <chester.rivas@gmail.com>"
   ],
-  "main": "src/cli.js",
-  "dependencies": {
-    "current-git-branch": "1.1.0",
-    "git-branch": "2.0.1",
-    "git-last-commit": "0.3.0",
-    "jsonfile": "5.0.0",
-    "moment-timezone": "0.5.25",
-    "moment": "2.24.0",
-    "remove-trailing-slash": "0.1.0",
-    "yargs": "13.2.2"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codebend3r/build-meta.git"
   },
-  "scripts": {
-    "check": "npx npm-check -s -u"
+  "engines": {
+    "node": ">=18.3.0"
   },
+  "files": [
+    "bin",
+    "CHANGES.md"
+  ],
   "bin": {
     "build-meta": "bin/build-meta.js"
   }
