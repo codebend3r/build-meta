@@ -1,0 +1,8 @@
+# The package has no dependencies and is meant to keep it that way, so the
+# install section exists mostly to stop one from sneaking in unpinned: there
+# is no lockfile to commit, and anything added by hand is written exact.
+[install]
+exact = true
+
+[install.lockfile]
+save = false

@@ -1,13 +1,12 @@
 'use strict';
 
-const { after, describe, it } = require('node:test');
-const assert = require('node:assert/strict');
+const { afterAll, describe, expect, it } = require('bun:test');
 const fs = require('node:fs');
 const path = require('node:path');
 
 const { cleanup, git, makeProject, metaPath, readMeta, run, writePkg } = require('./helpers');
 
-after(cleanup);
+afterAll(cleanup);
 
 describe('meta.json contents', () => {
   it('writes the six documented keys in order', () => {
@@ -15,8 +14,8 @@ describe('meta.json contents', () => {
 
     const result = run(dir, ['--src-folder', 'src']);
 
-    assert.equal(result.status, 0);
-    assert.deepEqual(Object.keys(readMeta(dir)), [
+    expect(result.status).toBe(0);
+    expect(Object.keys(readMeta(dir))).toEqual([
       'version',
       'buildDate',
       'buildEnv',
@@ -31,7 +30,7 @@ describe('meta.json contents', () => {
 
     run(dir, ['--src-folder', 'src']);
 
-    assert.equal(readMeta(dir).version, '4.5.6-beta.1');
+    expect(readMeta(dir).version).toBe('4.5.6-beta.1');
   });
 
   // The CLI resolves package.json from the current working directory, so a
@@ -45,11 +44,11 @@ describe('meta.json contents', () => {
 
     const result = run(nested, ['--src-folder', 'src']);
 
-    assert.equal(result.status, 0);
+    expect(result.status).toBe(0);
     const meta = readMeta(nested);
-    assert.equal(meta.version, '9.9.9');
-    assert.equal(meta.lastCommitHash, git(dir, ['rev-parse', 'HEAD']));
-    assert.equal(fs.existsSync(metaPath(dir)), false);
+    expect(meta.version).toBe('9.9.9');
+    expect(meta.lastCommitHash).toBe(git(dir, ['rev-parse', 'HEAD']));
+    expect(fs.existsSync(metaPath(dir))).toBe(false);
   });
 
   it('omits version when the package.json has none', () => {
@@ -57,8 +56,8 @@ describe('meta.json contents', () => {
 
     const result = run(dir, ['--src-folder', 'src']);
 
-    assert.equal(result.status, 0);
-    assert.equal('version' in readMeta(dir), false);
+    expect(result.status).toBe(0);
+    expect('version' in readMeta(dir)).toBe(false);
   });
 
   it('records the checked out branch, slashes and all', () => {
@@ -66,7 +65,7 @@ describe('meta.json contents', () => {
 
     run(dir, ['--src-folder', 'src']);
 
-    assert.equal(readMeta(dir).branchName, 'release/4.x');
+    expect(readMeta(dir).branchName).toBe('release/4.x');
   });
 
   // What CI usually produces: a bare commit checkout, where the branch name
@@ -77,7 +76,7 @@ describe('meta.json contents', () => {
 
     run(dir, ['--src-folder', 'src']);
 
-    assert.equal(readMeta(dir).branchName, 'HEAD');
+    expect(readMeta(dir).branchName).toBe('HEAD');
   });
 
   it('records the author and full hash of the last commit', () => {
@@ -87,9 +86,9 @@ describe('meta.json contents', () => {
     run(dir, ['--src-folder', 'src']);
 
     const meta = readMeta(dir);
-    assert.equal(meta.lastCommitAuthor, 'Ada Lovelace');
-    assert.equal(meta.lastCommitHash, git(dir, ['rev-parse', 'HEAD']));
-    assert.match(meta.lastCommitHash, /^[0-9a-f]{40}$/);
+    expect(meta.lastCommitAuthor).toBe('Ada Lovelace');
+    expect(meta.lastCommitHash).toBe(git(dir, ['rev-parse', 'HEAD']));
+    expect(meta.lastCommitHash).toMatch(/^[0-9a-f]{40}$/);
   });
 
   it('formats the file with two-space indentation and a trailing newline', () => {
@@ -98,19 +97,24 @@ describe('meta.json contents', () => {
     run(dir, ['--src-folder', 'src']);
 
     const contents = fs.readFileSync(metaPath(dir), 'utf8');
-    assert.match(contents, /^\{\n  "version": "1\.2\.3",\n/);
-    assert.equal(contents.endsWith('}\n'), true);
+    expect(contents).toMatch(/^\{\n  "version": "1\.2\.3",\n/);
+    expect(contents.endsWith('}\n')).toBe(true);
   });
 
+  // The CLI hands the object to console.info, so the quoting is the runtime's
+  // to choose: bun renders string values with double quotes where node uses
+  // single ones. Both are accepted, the assertion is about the values.
   it('prints the same object to stdout and leaves stderr empty', () => {
     const dir = makeProject();
 
     const result = run(dir, ['--src-folder', 'src']);
 
-    assert.equal(result.stderr, '');
+    expect(result.stderr).toBe('');
     const meta = readMeta(dir);
     for (const [key, value] of Object.entries(meta)) {
-      assert.match(result.stdout, new RegExp(`${key}: '${value.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}'`));
+      expect(result.stdout).toMatch(
+        new RegExp(`${key}: ['"]${value.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}['"]`),
+      );
     }
   });
 });

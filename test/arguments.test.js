@@ -1,12 +1,11 @@
 'use strict';
 
-const { after, describe, it } = require('node:test');
-const assert = require('node:assert/strict');
+const { afterAll, describe, expect, it } = require('bun:test');
 const fs = require('node:fs');
 
 const { cleanup, makeProject, metaPath, readMeta, run } = require('./helpers');
 
-after(cleanup);
+afterAll(cleanup);
 
 describe('argument parsing', () => {
   it('reports a missing --src-folder and writes nothing', () => {
@@ -14,9 +13,9 @@ describe('argument parsing', () => {
 
     const result = run(dir, []);
 
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /^build-meta: --src-folder <dir> is required\n$/);
-    assert.equal(fs.existsSync(metaPath(dir)), false);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/^build-meta: --src-folder <dir> is required\n$/);
+    expect(fs.existsSync(metaPath(dir))).toBe(false);
   });
 
   it('accepts --src-folder <dir>', () => {
@@ -24,8 +23,8 @@ describe('argument parsing', () => {
 
     const result = run(dir, ['--src-folder', 'src']);
 
-    assert.equal(result.status, 0);
-    assert.equal(readMeta(dir).version, '1.2.3');
+    expect(result.status).toBe(0);
+    expect(readMeta(dir).version).toBe('1.2.3');
   });
 
   it('accepts --src-folder=<dir>', () => {
@@ -33,8 +32,8 @@ describe('argument parsing', () => {
 
     const result = run(dir, ['--src-folder=src']);
 
-    assert.equal(result.status, 0);
-    assert.equal(readMeta(dir).version, '1.2.3');
+    expect(result.status).toBe(0);
+    expect(readMeta(dir).version).toBe('1.2.3');
   });
 
   it('rejects --src-folder without a value', () => {
@@ -42,9 +41,9 @@ describe('argument parsing', () => {
 
     const result = run(dir, ['--src-folder']);
 
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /Option '--src-folder <value>' argument missing/);
-    assert.equal(fs.existsSync(metaPath(dir)), false);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/Option '--src-folder <value>' argument missing/);
+    expect(fs.existsSync(metaPath(dir))).toBe(false);
   });
 
   // parseArgs is strict on purpose, so a typo fails the build instead of being
@@ -54,9 +53,9 @@ describe('argument parsing', () => {
 
     const result = run(dir, ['--src-folder', 'src', '--srcFolder', 'src']);
 
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /Unknown option '--srcFolder'/);
-    assert.equal(fs.existsSync(metaPath(dir)), false);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/Unknown option '--srcFolder'/);
+    expect(fs.existsSync(metaPath(dir))).toBe(false);
   });
 
   // There is deliberately no `build-meta src` shorthand.
@@ -65,8 +64,8 @@ describe('argument parsing', () => {
 
     const result = run(dir, ['src']);
 
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /positional/i);
-    assert.equal(fs.existsSync(metaPath(dir)), false);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/positional/i);
+    expect(fs.existsSync(metaPath(dir))).toBe(false);
   });
 });

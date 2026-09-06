@@ -11,10 +11,11 @@
     "url": "git+https://github.com/codebend3r/build-meta.git"
   },
   "engines": {
+    "bun": ">=1.3.0",
     "node": ">=24.0.0"
   },
   "scripts": {
-    "test": "node --test \"test/*.test.js\""
+    "test": "bun test"
   },
   "files": [
     "bin",

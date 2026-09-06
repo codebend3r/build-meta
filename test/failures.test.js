@@ -1,13 +1,12 @@
 'use strict';
 
-const { after, describe, it } = require('node:test');
-const assert = require('node:assert/strict');
+const { afterAll, describe, expect, it } = require('bun:test');
 const fs = require('node:fs');
 const path = require('node:path');
 
 const { cleanup, makeProject, metaPath, run, tempDir } = require('./helpers');
 
-after(cleanup);
+afterAll(cleanup);
 
 // Everything except the missing --src-folder surfaces as an uncaught
 // exception. The point of each assertion is the non-zero exit plus the fact
@@ -18,9 +17,9 @@ describe('failure modes', () => {
 
     const result = run(dir, ['--src-folder', 'src']);
 
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /Cannot find module .*package\.json/);
-    assert.equal(fs.existsSync(metaPath(dir)), false);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/Cannot find module .*package\.json/);
+    expect(fs.existsSync(metaPath(dir))).toBe(false);
   });
 
   it('fails outside a git repository and passes git stderr through', () => {
@@ -30,9 +29,9 @@ describe('failure modes', () => {
 
     const result = run(dir, ['--src-folder', 'src']);
 
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /not a git repository/i);
-    assert.equal(fs.existsSync(metaPath(dir)), false);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/not a git repository/i);
+    expect(fs.existsSync(metaPath(dir))).toBe(false);
   });
 
   it('fails when git is not on the PATH', () => {
@@ -40,9 +39,9 @@ describe('failure modes', () => {
 
     const result = run(dir, ['--src-folder', 'src'], { PATH: '/nonexistent' });
 
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /git.*not found/i);
-    assert.equal(fs.existsSync(metaPath(dir)), false);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/git.*not found/i);
+    expect(fs.existsSync(metaPath(dir))).toBe(false);
   });
 
   // The folder must already exist; the CLI deliberately does not create it.
@@ -51,9 +50,9 @@ describe('failure modes', () => {
 
     const result = run(dir, ['--src-folder', 'src']);
 
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /ENOENT/);
-    assert.equal(fs.existsSync(path.join(dir, 'src')), false);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/ENOENT/);
+    expect(fs.existsSync(path.join(dir, 'src'))).toBe(false);
   });
 
   it('fails when the target folder is a file', () => {
@@ -62,9 +61,9 @@ describe('failure modes', () => {
 
     const result = run(dir, ['--src-folder', 'notes.txt']);
 
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /ENOTDIR/);
-    assert.equal(fs.readFileSync(path.join(dir, 'notes.txt'), 'utf8'), 'not a folder\n');
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/ENOTDIR/);
+    expect(fs.readFileSync(path.join(dir, 'notes.txt'), 'utf8')).toBe('not a folder\n');
   });
 
   // The git work happens before the write, so a bad --src-folder fails at the
@@ -74,8 +73,8 @@ describe('failure modes', () => {
 
     const result = run(dir, ['--src-folder', 'src']);
 
-    assert.match(result.stderr, /ENOENT.*meta\.json/s);
-    assert.doesNotMatch(result.stderr, /not a git repository/i);
-    assert.equal(result.stdout, '');
+    expect(result.stderr).toMatch(/ENOENT.*meta\.json/s);
+    expect(result.stderr).not.toMatch(/not a git repository/i);
+    expect(result.stdout).toBe('');
   });
 });

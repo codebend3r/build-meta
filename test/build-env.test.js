@@ -1,11 +1,10 @@
 'use strict';
 
-const { after, describe, it } = require('node:test');
-const assert = require('node:assert/strict');
+const { afterAll, describe, expect, it } = require('bun:test');
 
 const { cleanup, makeProject, readMeta, run } = require('./helpers');
 
-after(cleanup);
+afterAll(cleanup);
 
 // buildEnv falls back in a fixed order: --env, then NODE_ENV, then PROFILE,
 // then the literal 'development'.
@@ -18,7 +17,7 @@ describe('buildEnv resolution', () => {
       PROFILE: 'staging',
     });
 
-    assert.equal(readMeta(dir).buildEnv, 'production');
+    expect(readMeta(dir).buildEnv).toBe('production');
   });
 
   it('uses NODE_ENV when --env is absent', () => {
@@ -26,7 +25,7 @@ describe('buildEnv resolution', () => {
 
     run(dir, ['--src-folder', 'src'], { NODE_ENV: 'test', PROFILE: 'staging' });
 
-    assert.equal(readMeta(dir).buildEnv, 'test');
+    expect(readMeta(dir).buildEnv).toBe('test');
   });
 
   it('uses PROFILE when neither --env nor NODE_ENV is set', () => {
@@ -34,7 +33,7 @@ describe('buildEnv resolution', () => {
 
     run(dir, ['--src-folder', 'src'], { PROFILE: 'staging' });
 
-    assert.equal(readMeta(dir).buildEnv, 'staging');
+    expect(readMeta(dir).buildEnv).toBe('staging');
   });
 
   it('falls back to development when nothing is set', () => {
@@ -42,7 +41,7 @@ describe('buildEnv resolution', () => {
 
     run(dir, ['--src-folder', 'src']);
 
-    assert.equal(readMeta(dir).buildEnv, 'development');
+    expect(readMeta(dir).buildEnv).toBe('development');
   });
 
   // An empty --env is falsy, so it does not pin buildEnv to an empty string;
@@ -52,7 +51,7 @@ describe('buildEnv resolution', () => {
 
     run(dir, ['--src-folder', 'src', '--env='], { NODE_ENV: 'test' });
 
-    assert.equal(readMeta(dir).buildEnv, 'test');
+    expect(readMeta(dir).buildEnv).toBe('test');
   });
 
   it('treats an empty --env with no environment variables as development', () => {
@@ -60,7 +59,7 @@ describe('buildEnv resolution', () => {
 
     run(dir, ['--src-folder', 'src', '--env=']);
 
-    assert.equal(readMeta(dir).buildEnv, 'development');
+    expect(readMeta(dir).buildEnv).toBe('development');
   });
 
   // An empty NODE_ENV is falsy for the same reason, so PROFILE still wins.
@@ -69,6 +68,6 @@ describe('buildEnv resolution', () => {
 
     run(dir, ['--src-folder', 'src'], { NODE_ENV: '', PROFILE: 'staging' });
 
-    assert.equal(readMeta(dir).buildEnv, 'staging');
+    expect(readMeta(dir).buildEnv).toBe('staging');
   });
 });

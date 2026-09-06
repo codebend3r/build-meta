@@ -2,12 +2,12 @@
 
 A CLI that writes a `meta.json` describing the current build: package version, build date, environment, git branch, and the last commit's author and hash.
 
-It has no runtime dependencies. It needs Node 24 or newer and `git` on the PATH.
+It has no runtime dependencies. It needs `git` on the PATH and either Bun or Node 24 or newer: the CLI is stdlib-only CommonJS and runs unchanged on both. The repository itself is developed and tested with Bun.
 
 ## Install
 
 ```sh
-npm i -D build-meta
+bun add -d build-meta   # or: npm i -D build-meta
 ```
 
 Note: the version currently on npm (0.0.12) is the older implementation, which depends on `yargs`, `moment`, `moment-timezone`, `jsonfile`, and several git helpers. The dependency-free rewrite documented here lives in this repository and has not been published yet.
@@ -73,10 +73,12 @@ Only the first case is handled with a friendly message; the rest surface as unca
 ## Tests
 
 ```sh
-npm test
+bun test
 ```
 
-Node 24 is pinned for the repo in `.node-version` and `.nvmrc`, so `fnm use` or `nvm use` selects the right runtime before running anything. The suite runs on the `node:test` runner with no dependencies. Each test builds a temporary project with its own git repository and runs the CLI against it, so it checks the file that actually ships rather than an importable copy of its logic.
+Bun is pinned for the repo in `.bun-version`. The suite runs on `bun:test` with no dependencies, so there is nothing to install first. Each test builds a temporary project with its own git repository and runs the CLI against it, so it checks the file that actually ships rather than an importable copy of its logic.
+
+The child processes are spawned with `process.execPath`, which is the Bun binary under `bun test`. The one place the runtime shows through is the object the CLI prints to stdout: Bun quotes string values with `"` where Node uses `'`, so that assertion accepts either.
 
 ## Use in the app
 

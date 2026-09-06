@@ -3,6 +3,9 @@
 // Fixtures for the CLI tests. Everything here builds a throwaway project on
 // disk and runs bin/build-meta.js against it in a child process: the CLI does
 // all its work at module load, so there is nothing to require() and assert on.
+//
+// node:child_process and node:fs are used rather than the Bun globals because
+// the same fixtures have to keep working if the suite is ever run under node.
 
 const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
@@ -72,6 +75,10 @@ function writePkg(dir, pkg) {
 
 // NODE_ENV and PROFILE are stripped so the buildEnv fallback chain starts from
 // a known state no matter what the test runner was launched with.
+//
+// process.execPath is the bun binary under `bun test`, so this exercises the
+// CLI on the runtime the repo now develops against. The file is stdlib-only
+// CJS, so bun and node both run it unchanged.
 function run(cwd, args = [], env = {}) {
   const base = { ...process.env, ...GIT_ENV, GIT_CEILING_DIRECTORIES: TMP_ROOT };
   delete base.NODE_ENV;

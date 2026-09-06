@@ -1,7 +1,6 @@
 'use strict';
 
-const { after, describe, it } = require('node:test');
-const assert = require('node:assert/strict');
+const { afterAll, describe, expect, it } = require('bun:test');
 
 const {
   cleanup,
@@ -11,7 +10,7 @@ const {
   torontoStampsBetween,
 } = require('./helpers');
 
-after(cleanup);
+afterAll(cleanup);
 
 // buildDate is 'MM-DD-YYYY hh:mm:ss AM ET', always Eastern Time, so stamps
 // from different machines and CI regions stay comparable.
@@ -21,8 +20,7 @@ describe('buildDate', () => {
 
     run(dir, ['--src-folder', 'src']);
 
-    assert.match(
-      readMeta(dir).buildDate,
+    expect(readMeta(dir).buildDate).toMatch(
       /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])-\d{4} (0[1-9]|1[0-2]):[0-5]\d:[0-5]\d (AM|PM) ET$/,
     );
   });
@@ -34,11 +32,7 @@ describe('buildDate', () => {
     run(dir, ['--src-folder', 'src']);
     const finishedAt = Date.now();
 
-    const expected = torontoStampsBetween(startedAt, finishedAt);
-    assert.ok(
-      expected.has(readMeta(dir).buildDate),
-      `${readMeta(dir).buildDate} is not one of ${[...expected].join(', ')}`,
-    );
+    expect([...torontoStampsBetween(startedAt, finishedAt)]).toContain(readMeta(dir).buildDate);
   });
 
   // The timezone is hardcoded, so the machine's own TZ must not show through.
@@ -50,11 +44,7 @@ describe('buildDate', () => {
       run(dir, ['--src-folder', 'src'], { TZ });
       const finishedAt = Date.now();
 
-      const expected = torontoStampsBetween(startedAt, finishedAt);
-      assert.ok(
-        expected.has(readMeta(dir).buildDate),
-        `TZ=${TZ} produced ${readMeta(dir).buildDate}, expected one of ${[...expected].join(', ')}`,
-      );
+      expect([...torontoStampsBetween(startedAt, finishedAt)]).toContain(readMeta(dir).buildDate);
     });
   }
 });
