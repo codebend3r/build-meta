@@ -2,16 +2,16 @@
   "name": "build-meta",
   "version": "0.0.12",
   "description": "Writes a meta.json with the package version, build date, environment, git branch, and last commit for the current project",
-  "author": "Chester Rivas <chester.rivas@gmail.com>",
+  "author": "CJ Rivas <cj.rivas.dev@gmail.com>",
   "contributors": [
-    "Chester Rivas <chester.rivas@gmail.com>"
+    "CJ Rivas <cj.rivas.dev@gmail.com>"
   ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/codebend3r/build-meta.git"
   },
   "engines": {
-    "node": ">=18.3.0"
+    "node": ">=24.0.0"
   },
   "files": [
     "bin",

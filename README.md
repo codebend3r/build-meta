@@ -1,6 +1,8 @@
 # build-meta
 
-Writes a `meta.json` describing the current build: package version, build date, environment, git branch, and the last commit's author and hash. Zero dependencies. Needs Node 18.3 or newer and `git` on the PATH.
+A CLI that writes a `meta.json` describing the current build: package version, build date, environment, git branch, and the last commit's author and hash.
+
+It has no runtime dependencies. It needs Node 24 or newer and `git` on the PATH.
 
 ## Install
 
@@ -8,9 +10,11 @@ Writes a `meta.json` describing the current build: package version, build date, 
 npm i -D build-meta
 ```
 
+Note: the version currently on npm (0.0.12) is the older implementation, which depends on `yargs`, `moment`, `moment-timezone`, `jsonfile`, and several git helpers. The dependency-free rewrite documented here lives in this repository and has not been published yet.
+
 ## Generate
 
-Run it from the project root and point it at the folder that should receive `meta.json`:
+Run it from the directory that holds your `package.json`, and point `--src-folder` at the folder that should receive `meta.json`:
 
 ```sh
 build-meta --src-folder src
@@ -27,26 +31,48 @@ Typically wired into a build script:
 }
 ```
 
-`--env` falls back to `NODE_ENV`, then `PROFILE`, then `development`. The command exits non-zero if the flag is missing, the folder does not exist, or the project is not a git repository, so a broken build cannot ship stale or empty metadata.
+`--src-folder` is the only required flag. It takes a path relative to the current working directory, or an absolute one, and `--src-folder=src` works as well. The folder must already exist; the CLI does not create it. There is no positional form, so `build-meta src` is rejected.
+
+`--env` sets `buildEnv`. When it is absent or empty, the value falls back to `NODE_ENV`, then `PROFILE`, then the literal `development`.
+
+On success the CLI writes the file and also prints the object to stdout.
+
+## Failures
+
+Every failure exits with status 1:
+
+| Cause | Output |
+| --- | --- |
+| `--src-folder` missing | `build-meta: --src-folder <dir> is required` |
+| Unknown flag, or a positional argument | `parseArgs` error and a stack trace |
+| No `package.json` in the working directory | Module resolution error and a stack trace |
+| Not a git repository, or `git` not on the PATH | git's own stderr, then a stack trace |
+| `--src-folder` points at a folder that does not exist | `ENOENT` and a stack trace |
+
+Only the first case is handled with a friendly message; the rest surface as uncaught exceptions. The git commands run before the file is written, so a bad `--src-folder` fails at the last step, after the git work has already happened.
 
 ## Output
 
-`buildDate` is Eastern Time (America/Toronto).
+`buildDate` is formatted in Eastern Time (`America/Toronto`). The timezone and the format are hardcoded and cannot be configured.
 
 ```json
 {
-  "version": "0.0.12",
-  "buildDate": "09-05-2026 01:12:24 AM ET",
-  "buildEnv": "development",
-  "branchName": "master",
-  "lastCommitAuthor": "Chester Rivas",
-  "lastCommitHash": "89b9101fd08a4d83ec44b64f1e617e0dca1233b7"
+  "version": "1.2.3",
+  "buildDate": "09-05-2026 10:44:01 PM ET",
+  "buildEnv": "production",
+  "branchName": "main",
+  "lastCommitAuthor": "CJ Rivas",
+  "lastCommitHash": "907761dd591f6bc3a69a514092acfb8c147b73cf"
 }
 ```
 
+`version` is read from the `package.json` in the current working directory, not from the git root and not from build-meta's own package.
+
+`branchName` comes from `git rev-parse --abbrev-ref HEAD`, which returns the string `HEAD` when the repository is in a detached HEAD state. Many CI systems check out a detached commit, so expect `"branchName": "HEAD"` there unless a branch is checked out explicitly.
+
 ## Use in the app
 
-Import the file and hang it on a namespaced window object so it is inspectable in the browser console:
+`meta.json` is a plain JSON file, so any bundler that resolves JSON imports can pull it in. One way to make it inspectable from the browser console:
 
 ```js
 import meta from './meta.json';
