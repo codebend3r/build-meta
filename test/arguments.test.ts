@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, it } from 'bun:test';
 import fs from 'node:fs';
 
-import { cleanup, makeProject, metaPath, readMeta, run } from './helpers';
+import { cleanup, jsPath, makeProject, readMetaJs, run } from './helpers';
 
 afterAll(cleanup);
 
@@ -13,7 +13,7 @@ describe('argument parsing', () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/^build-meta: --src-folder <dir> is required\n$/u);
-    expect(fs.existsSync(metaPath(dir))).toBe(false);
+    expect(fs.existsSync(jsPath(dir))).toBe(false);
   });
 
   it('accepts --src-folder <dir>', () => {
@@ -22,7 +22,7 @@ describe('argument parsing', () => {
     const result = run(dir, ['--src-folder', 'src']);
 
     expect(result.status).toBe(0);
-    expect(readMeta(dir).version).toBe('1.2.3');
+    expect(readMetaJs(dir).version).toBe('1.2.3');
   });
 
   it('accepts --src-folder=<dir>', () => {
@@ -31,7 +31,7 @@ describe('argument parsing', () => {
     const result = run(dir, ['--src-folder=src']);
 
     expect(result.status).toBe(0);
-    expect(readMeta(dir).version).toBe('1.2.3');
+    expect(readMetaJs(dir).version).toBe('1.2.3');
   });
 
   it('rejects --src-folder without a value', () => {
@@ -41,7 +41,7 @@ describe('argument parsing', () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/Option '--src-folder <value>' argument missing/u);
-    expect(fs.existsSync(metaPath(dir))).toBe(false);
+    expect(fs.existsSync(jsPath(dir))).toBe(false);
   });
 
   // parseArgs is strict on purpose, so a typo fails the build instead of being
@@ -53,7 +53,7 @@ describe('argument parsing', () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/Unknown option '--srcFolder'/u);
-    expect(fs.existsSync(metaPath(dir))).toBe(false);
+    expect(fs.existsSync(jsPath(dir))).toBe(false);
   });
 
   // There is deliberately no `build-meta src` shorthand.
@@ -64,6 +64,6 @@ describe('argument parsing', () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/positional/iu);
-    expect(fs.existsSync(metaPath(dir))).toBe(false);
+    expect(fs.existsSync(jsPath(dir))).toBe(false);
   });
 });

@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'bun:test';
 
-import { cleanup, makeProject, readMeta, run } from './helpers';
+import { cleanup, makeProject, readMetaJs, run } from './helpers';
 
 afterAll(cleanup);
 
@@ -15,7 +15,7 @@ describe('buildEnv resolution', () => {
       PROFILE: 'staging',
     });
 
-    expect(readMeta(dir).buildEnv).toBe('production');
+    expect(readMetaJs(dir).buildEnv).toBe('production');
   });
 
   it('uses NODE_ENV when --env is absent', () => {
@@ -23,7 +23,7 @@ describe('buildEnv resolution', () => {
 
     run(dir, ['--src-folder', 'src'], { NODE_ENV: 'test', PROFILE: 'staging' });
 
-    expect(readMeta(dir).buildEnv).toBe('test');
+    expect(readMetaJs(dir).buildEnv).toBe('test');
   });
 
   it('uses PROFILE when neither --env nor NODE_ENV is set', () => {
@@ -31,7 +31,7 @@ describe('buildEnv resolution', () => {
 
     run(dir, ['--src-folder', 'src'], { PROFILE: 'staging' });
 
-    expect(readMeta(dir).buildEnv).toBe('staging');
+    expect(readMetaJs(dir).buildEnv).toBe('staging');
   });
 
   it('falls back to development when nothing is set', () => {
@@ -39,7 +39,7 @@ describe('buildEnv resolution', () => {
 
     run(dir, ['--src-folder', 'src']);
 
-    expect(readMeta(dir).buildEnv).toBe('development');
+    expect(readMetaJs(dir).buildEnv).toBe('development');
   });
 
   // An empty --env is falsy, so it does not pin buildEnv to an empty string;
@@ -49,7 +49,7 @@ describe('buildEnv resolution', () => {
 
     run(dir, ['--src-folder', 'src', '--env='], { NODE_ENV: 'test' });
 
-    expect(readMeta(dir).buildEnv).toBe('test');
+    expect(readMetaJs(dir).buildEnv).toBe('test');
   });
 
   it('treats an empty --env with no environment variables as development', () => {
@@ -57,7 +57,7 @@ describe('buildEnv resolution', () => {
 
     run(dir, ['--src-folder', 'src', '--env=']);
 
-    expect(readMeta(dir).buildEnv).toBe('development');
+    expect(readMetaJs(dir).buildEnv).toBe('development');
   });
 
   // An empty NODE_ENV is falsy for the same reason, so PROFILE still wins.
@@ -66,6 +66,6 @@ describe('buildEnv resolution', () => {
 
     run(dir, ['--src-folder', 'src'], { NODE_ENV: '', PROFILE: 'staging' });
 
-    expect(readMeta(dir).buildEnv).toBe('staging');
+    expect(readMetaJs(dir).buildEnv).toBe('staging');
   });
 });

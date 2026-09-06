@@ -16,6 +16,7 @@ import path from 'node:path';
 export type Meta = {
   version?: string;
   buildDate: string;
+  buildDateISO: string;
   buildEnv: string;
   branchName: string;
   lastCommitAuthor: string;
@@ -131,6 +132,45 @@ export function metaPath(dir: string, srcFolder = 'src'): string {
 
 export function readMeta(dir: string, srcFolder = 'src'): Meta {
   return JSON.parse(fs.readFileSync(metaPath(dir, srcFolder), 'utf8')) as Meta;
+}
+
+export function jsPath(dir: string, srcFolder = 'src'): string {
+  return path.join(dir, srcFolder, 'meta.js');
+}
+
+export type LoadOptions = {
+  // Whether the host has a `window`. Neither bun nor node defines one, so
+  // leaving this false is what exercises the globalThis fallback.
+  window?: boolean;
+  // A JavaScript expression to install under the key before the artifact
+  // loads, for the case where something else got there first.
+  existing?: string;
+};
+
+// Loads the emitted meta.js the way a page would and reports back whatever it
+// installed. The artifact is required for real rather than pattern matched,
+// because the thing under test is that it is valid script which assigns the
+// right value, and a regex over the text proves neither.
+export function loadMetaJs(file: string, { window = false, existing }: LoadOptions = {}): unknown {
+  const loader = path.join(tempDir(), 'loader.cjs');
+  fs.writeFileSync(
+    loader,
+    [
+      window ? 'globalThis.window = globalThis;' : '',
+      existing ? `globalThis['build-meta'] = ${existing};` : '',
+      `require(${JSON.stringify(file)});`,
+      `process.stdout.write(JSON.stringify(globalThis['build-meta']) ?? 'undefined');`,
+    ].join('\n'),
+  );
+  const result = spawnSync(process.execPath, [loader], { encoding: 'utf8', env: cleanEnv() });
+  if (result.status !== 0) {
+    throw new Error(`loading ${file} failed\n${result.stderr}`);
+  }
+  return result.stdout === 'undefined' ? undefined : (JSON.parse(result.stdout) as unknown);
+}
+
+export function readMetaJs(dir: string, srcFolder = 'src'): Meta {
+  return loadMetaJs(jsPath(dir, srcFolder), { window: true }) as Meta;
 }
 
 // Built from toLocaleString rather than formatToParts so the expectation is an

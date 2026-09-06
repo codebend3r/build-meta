@@ -1,12 +1,12 @@
 # build-meta
 
-CLI that writes a `meta.json` (version, build date, env, git branch, last commit) into a target folder.
+CLI that writes a `meta.js` (version, build date, ISO build date, env, git branch, last commit) into a target folder. The file is a plain script that installs the object on `window['build-meta']`, falling back to `globalThis`, and never overwrites an existing value. A `meta.json` is opt in via `--output-json`, or `--json-out-dir <dir>` which implies it and defaults to the working directory.
 
 ## Layout
 
 All logic lives in `src/build-meta.ts`, a single TypeScript file. `tsgo` compiles it to `bin/build-meta.js`, which is the file the package ships and the only build output. `bin/` is gitignored; `bun run build` and the `prepare` script regenerate it.
 
-Tests live in `test/`, one file per area, with shared fixtures in `test/helpers.ts`. They use `bun:test` and no test framework, and run straight off the TypeScript, since Bun transpiles it. The CLI does all its work at module load, so every test spawns the compiled `bin/build-meta.js` in a child process against a throwaway git repo under the OS temp directory. Under `bun test` that child runs on the Bun binary, since the fixtures spawn `process.execPath`.
+Tests live in `test/`, one file per area, with shared fixtures in `test/helpers.ts`. `js-output.test.ts` covers the script artifact, `json-output.test.ts` the two JSON flags, and `meta-output.test.ts` the values themselves. The emitted `meta.js` is loaded for real in a child process and the installed global read back, never pattern matched as text. They use `bun:test` and no test framework, and run straight off the TypeScript, since Bun transpiles it. The CLI does all its work at module load, so every test spawns the compiled `bin/build-meta.js` in a child process against a throwaway git repo under the OS temp directory. Under `bun test` that child runs on the Bun binary, since the fixtures spawn `process.execPath`.
 
 ## Constraints
 
@@ -14,13 +14,16 @@ Tests live in `test/`, one file per area, with shared fixtures in `test/helpers.
 - Bun is the toolchain: `bun run test` builds and runs the suite, `bunfig.toml` holds the install config, and `.bun-version` pins the version.
 - The shipped CLI stays runtime-agnostic. The shebang lives at the top of `src/build-meta.ts` and `tsgo` preserves it, and the emit is stdlib-only CommonJS so published consumers do not need Bun or TypeScript; `engines` documents both runtimes (`bun >=1.3.0`, `node >=24.0.0`), and `git` must be on the PATH.
 - No `any` and no `as unknown as` casts. The one assertion in the CLI is `require(resolve('package.json')) as PackageJson`, because `require` is untyped by design.
-- Reads `package.json` and resolves `--src-folder` from the current working directory, not the git root.
-- `buildDate` is hardcoded to `America/Toronto`.
+- Reads `package.json` and resolves `--src-folder` and `--json-out-dir` from the current working directory, not the git root.
+- `buildDate` is hardcoded to `America/Toronto`. `buildDateISO` is UTC, and both come from one `Date` so they cannot disagree.
+- Both outputs are serialized from a single in-memory object, so `meta.js` and `meta.json` can never drift apart.
 
 ## Run it
 
 ```sh
 bun bin/build-meta.js --src-folder <existing-dir>
+bun bin/build-meta.js --src-folder <existing-dir> --output-json
+bun bin/build-meta.js --src-folder <existing-dir> --json-out-dir <existing-dir>
 ```
 
 ## Build it
