@@ -7,11 +7,29 @@
 //
 // Stdlib only. Adding a runtime dependency is a deliberate regression: the
 // whole point of the rewrite was to drop the eight packages 0.0.12 shipped.
+//
+// This is the TypeScript source; `bun run build` compiles it down to the
+// stdlib-only CommonJS `bin/build-meta.js` that actually ships, so consumers
+// still need nothing but node and git.
 
-const { execSync } = require('node:child_process');
-const { writeFileSync } = require('node:fs');
-const path = require('node:path');
-const { parseArgs } = require('node:util');
+import { execSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { parseArgs } from 'node:util';
+
+// The shape build-meta cares about. Everything else in a package.json is
+// irrelevant here, and `version` is optional because a package.json without
+// one is a case the CLI handles rather than rejects.
+type PackageJson = { version?: string };
+
+type Meta = {
+  version: string | undefined;
+  buildDate: string;
+  buildEnv: string;
+  branchName: string;
+  lastCommitAuthor: string;
+  lastCommitHash: string;
+};
 
 // parseArgs is strict by default, which is what we want: an unknown flag or a
 // stray positional throws instead of being silently ignored. That means there
@@ -35,14 +53,14 @@ if (!flags['src-folder']) {
 // aborts the run. stderr is inherited rather than piped so git's own message
 // ("fatal: not a git repository") reaches the terminal instead of being
 // swallowed into the exception.
-const git = (args) =>
+const git = (args: string): string =>
   execSync(`git ${args}`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] }).trim();
 
 // Formatted via formatToParts because no single Intl preset produces
 // "MM-DD-YYYY hh:mm:ss AM ET". Eastern Time is hardcoded on purpose: the point
 // is that every build stamp is comparable regardless of which machine or CI
 // region produced it.
-function buildDate() {
+function buildDate(): string {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/Toronto',
     year: 'numeric',
@@ -57,10 +75,11 @@ function buildDate() {
   return `${p.month}-${p.day}-${p.year} ${p.hour}:${p.minute}:${p.second} ${p.dayPeriod} ET`;
 }
 
-const meta = {
+const meta: Meta = {
   // Throws if the working directory has no package.json, which is the intended
-  // signal that build-meta was invoked from the wrong place.
-  version: require(path.resolve('package.json')).version,
+  // signal that build-meta was invoked from the wrong place. A package.json
+  // with no version leaves this undefined, which JSON.stringify then drops.
+  version: (require(resolve('package.json')) as PackageJson).version,
   buildDate: buildDate(),
   // An explicit --env wins, then the two env vars, then a literal default.
   // Note an empty --env='' falls through to the same chain.
@@ -76,6 +95,6 @@ const meta = {
 // The write comes last, after the git calls have already run, so a bad
 // --src-folder fails at the very end with an ENOENT. The directory must
 // already exist; this deliberately does not create it.
-writeFileSync(path.resolve(flags['src-folder'], 'meta.json'), JSON.stringify(meta, null, 2) + '\n');
+writeFileSync(resolve(flags['src-folder'], 'meta.json'), JSON.stringify(meta, null, 2) + '\n');
 
 console.info(meta);

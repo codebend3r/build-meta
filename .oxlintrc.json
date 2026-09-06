@@ -11,5 +11,5 @@
     "unicorn/prefer-string-raw": "error",
     "eslint/require-unicode-regexp": "error"
   },
-  "ignorePatterns": ["node_modules"]
+  "ignorePatterns": ["node_modules", "bin"]
 }

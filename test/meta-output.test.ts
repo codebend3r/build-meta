@@ -1,10 +1,8 @@
-'use strict';
+import { afterAll, describe, expect, it } from 'bun:test';
+import fs from 'node:fs';
+import path from 'node:path';
 
-const { afterAll, describe, expect, it } = require('bun:test');
-const fs = require('node:fs');
-const path = require('node:path');
-
-const { cleanup, git, makeProject, metaPath, readMeta, run, writePkg } = require('./helpers');
+import { cleanup, git, makeProject, metaPath, readMeta, run, writePkg } from './helpers';
 
 afterAll(cleanup);
 
@@ -104,6 +102,10 @@ describe('meta.json contents', () => {
   // The CLI hands the object to console.info, so the quoting is the runtime's
   // to choose: bun renders string values with double quotes where node uses
   // single ones. Both are accepted, the assertion is about the values.
+  //
+  // Every value the CLI writes is a string, and JSON has no undefined, so the
+  // entries of a parsed meta.json are string pairs even though Meta marks
+  // `version` optional.
   it('prints the same object to stdout and leaves stderr empty', () => {
     const dir = makeProject();
 
@@ -111,7 +113,7 @@ describe('meta.json contents', () => {
 
     expect(result.stderr).toBe('');
     const meta = readMeta(dir);
-    for (const [key, value] of Object.entries(meta)) {
+    for (const [key, value] of Object.entries(meta) as [string, string][]) {
       expect(result.stdout).toMatch(
         new RegExp(
           `${key}: ['"]${value.replaceAll(/[.*+?^${}()|[\]\\/]/gu, String.raw`\$&`)}['"]`,

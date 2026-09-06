@@ -1,8 +1,6 @@
-'use strict';
+import { afterAll, describe, expect, it } from 'bun:test';
 
-const { afterAll, describe, expect, it } = require('bun:test');
-
-const { cleanup, makeProject, readMeta, run, torontoStampsBetween } = require('./helpers');
+import { cleanup, makeProject, readMeta, run, torontoStampsBetween } from './helpers';
 
 afterAll(cleanup);
 

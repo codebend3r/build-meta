@@ -15,11 +15,14 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "test": "bun test",
+    "build": "tsgo -p tsconfig.build.json && chmod +x bin/build-meta.js",
+    "clean": "rm -rf bin",
+    "typecheck": "tsgo -p tsconfig.json",
+    "test": "bun run build && bun test",
     "lint": "oxlint",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "prepare": "husky"
+    "prepare": "husky && bun run build"
   },
   "files": [
     "bin",
@@ -29,6 +32,9 @@
     "build-meta": "bin/build-meta.js"
   },
   "devDependencies": {
+    "@types/bun": "1.4.1",
+    "@types/node": "26.4.1",
+    "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "husky": "9.1.7",
     "oxfmt": "0.66.0",
     "oxlint": "1.81.0"

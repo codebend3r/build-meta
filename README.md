@@ -2,7 +2,7 @@
 
 A CLI that writes a `meta.json` describing the current build: package version, build date, environment, git branch, and the last commit's author and hash.
 
-It has no runtime dependencies. It needs `git` on the PATH and either Bun or Node 24 or newer: the CLI is stdlib-only CommonJS and runs unchanged on both. The repository itself is developed and tested with Bun.
+It has no runtime dependencies. It needs `git` on the PATH and either Bun or Node 24 or newer: the published CLI is stdlib-only CommonJS and runs unchanged on both. The repository itself is written in TypeScript and developed and tested with Bun; `bun run build` compiles `src/build-meta.ts` down to the `bin/build-meta.js` that ships.
 
 ## Install
 
@@ -70,13 +70,24 @@ Only the first case is handled with a friendly message; the rest surface as unca
 
 `branchName` comes from `git rev-parse --abbrev-ref HEAD`, which returns the string `HEAD` when the repository is in a detached HEAD state. Many CI systems check out a detached commit, so expect `"branchName": "HEAD"` there unless a branch is checked out explicitly.
 
+## Build
+
+```sh
+bun run build       # tsgo -p tsconfig.build.json, writes bin/build-meta.js
+bun run typecheck   # tsgo -p tsconfig.json, checks src and test
+```
+
+`bin/` is generated and is not committed. `bun install` rebuilds it through the `prepare` script, and so does `bun publish`.
+
 ## Tests
 
 ```sh
-bun test
+bun run test
 ```
 
-Bun is pinned for the repo in `.bun-version`. The suite itself pulls in nothing; run `bun install` once to get the devDependencies and the `husky` git hooks. `pre-commit` runs `bun run lint` (`oxlint`), `bun run format:check` (`oxfmt`) and the suite, and `commit-msg` checks the commit message format. Each test builds a temporary project with its own git repository and runs the CLI against it, so it checks the file that actually ships rather than an importable copy of its logic.
+`bun run test` builds first and then runs `bun test`; the suite runs the compiled CLI, so a bare `bun test` on a clean checkout has nothing to spawn.
+
+Bun is pinned for the repo in `.bun-version`. The suite itself pulls in nothing; run `bun install` once to get the devDependencies and the `husky` git hooks. `pre-commit` runs `bun run lint` (`oxlint`), `bun run format:check` (`oxfmt`), `bun run typecheck` (`tsgo`) and the suite, and `commit-msg` checks the commit message format. Each test builds a temporary project with its own git repository and runs the CLI against it, so it checks the file that actually ships rather than an importable copy of its logic.
 
 The child processes are spawned with `process.execPath`, which is the Bun binary under `bun test`. The one place the runtime shows through is the object the CLI prints to stdout: Bun quotes string values with `"` where Node uses `'`, so that assertion accepts either.
 

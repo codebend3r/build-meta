@@ -1,1 +1,5 @@
 node_modules
+
+# Build output. `bun run build` compiles src/build-meta.ts into bin/, and
+# `prepare` rebuilds it on every install and before publish.
+bin

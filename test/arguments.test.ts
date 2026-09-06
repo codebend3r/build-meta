@@ -1,9 +1,7 @@
-'use strict';
+import { afterAll, describe, expect, it } from 'bun:test';
+import fs from 'node:fs';
 
-const { afterAll, describe, expect, it } = require('bun:test');
-const fs = require('node:fs');
-
-const { cleanup, makeProject, metaPath, readMeta, run } = require('./helpers');
+import { cleanup, makeProject, metaPath, readMeta, run } from './helpers';
 
 afterAll(cleanup);
 

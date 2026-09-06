@@ -1,5 +1,5 @@
-# The CLI itself still ships zero runtime dependencies. `husky` is the only
-# devDependency, so the lockfile is committed and anything added by hand is
-# written exact.
+# The CLI itself still ships zero runtime dependencies. Everything in
+# devDependencies is toolchain only, so the lockfile is committed and anything
+# added by hand is written exact.
 [install]
 exact = true

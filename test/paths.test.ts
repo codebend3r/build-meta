@@ -1,10 +1,8 @@
-'use strict';
+import { afterAll, describe, expect, it } from 'bun:test';
+import fs from 'node:fs';
+import path from 'node:path';
 
-const { afterAll, describe, expect, it } = require('bun:test');
-const fs = require('node:fs');
-const path = require('node:path');
-
-const { cleanup, makeProject, metaPath, readMeta, run, tempDir } = require('./helpers');
+import { cleanup, makeProject, type Meta, metaPath, readMeta, run, tempDir } from './helpers';
 
 afterAll(cleanup);
 
@@ -35,9 +33,8 @@ describe('--src-folder resolution', () => {
     const result = run(dir, ['--src-folder', outside]);
 
     expect(result.status).toBe(0);
-    expect(JSON.parse(fs.readFileSync(path.join(outside, 'meta.json'), 'utf8')).version).toBe(
-      '1.2.3',
-    );
+    const written = JSON.parse(fs.readFileSync(path.join(outside, 'meta.json'), 'utf8')) as Meta;
+    expect(written.version).toBe('1.2.3');
     expect(fs.existsSync(metaPath(dir))).toBe(false);
   });
 

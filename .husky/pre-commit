@@ -1,8 +1,11 @@
 # husky puts `node_modules/.bin` on the PATH and runs this with `sh -e`, so the
 # first failure stops the commit.
 #
-# Both tools sweep the whole repo rather than the staged files: it is a handful
-# of files and they finish in milliseconds. The suite is the slow part.
+# The linter, the formatter and the type checker sweep the whole repo rather
+# than the staged files: it is a handful of files and they finish in
+# milliseconds. `bun run test` builds `bin/` first, since the suite runs the
+# compiled CLI in a child process. That build is the slow part.
 oxlint
 oxfmt --check
-bun test
+tsgo -p tsconfig.json
+bun run test
