@@ -236,4 +236,10 @@ bun run clean        # rm -rf bin
 
 `bin/` is generated and is not committed. `bun install` rebuilds it through the `prepare` script, and so does `bun publish`.
 
+### Continuous integration
+
+Two workflows live in `.github/workflows/`. `pull-request-checks.yml` runs lint, formatting, typecheck, build and tests on every pull request, then proves the two properties the local loop cannot see: that the compiled `bin/build-meta.js` runs on a bare Node 24 as well as on Bun, and that the package still has zero runtime dependencies with an emit that reaches for nothing but `node:` builtins. `sanity-check.yml` runs the same suite on every push to `main` and adds a check that the packed tarball installs into an empty project and runs.
+
+### Notes on the suite
+
 The suite spawns the compiled CLI in a child process against throwaway git repositories under the OS temp directory, because the CLI does all its work at module load. The generated `meta.js` is loaded for real in a child process and the global read back, and the generated `meta.d.ts` is compiled with `tsgo` against sample consumer code, rather than either being pattern matched as text.

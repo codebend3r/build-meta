@@ -63,6 +63,14 @@ Not a bare `bun test`: the script builds `bin/` first, and the suite spawns that
 - `commit-msg` enforces the `## Commits` rules: the `BM:` subject prefix, no agent attribution, no em or en dashes. `Merge`, `Revert`, `fixup!`, `squash!` and `amend!` subjects are exempt from the prefix check
 - `git commit --no-verify` skips both, for a deliberate work-in-progress commit
 
+## CI
+
+`.github/workflows/` holds two workflows, both Bun based and both installing with `bun install --frozen-lockfile --ignore-scripts` so husky's `prepare` never runs on a runner.
+
+- `pull-request-checks.yml` runs on `pull_request`, and exposes `workflow_call` so the sanity check can reuse it rather than restate it. Three jobs: `checks` unrolls `lint`, `format:check`, `typecheck`, `build` and `test` one step each so a red run names the tool; `node-parity` runs the compiled `bin/build-meta.js` under Node 24 and under Bun against a throwaway repo, then loads the emitted `meta.js` and reads the global back; `dependencies` asserts `dependencies`, `peerDependencies` and `optionalDependencies` are all empty and that every literal `require()` in the emit targets a `node:` builtin
+- `sanity-check.yml` runs on pushes to `main`, since `bun pm version` and a plain push both land there with no PR. It calls the pull request workflow, then adds a `package` job that asserts the `npm pack` file list is exactly `CHANGES.md README.md bin/build-meta.js package.json`, that the CLI is executable with the right shebang, and that the packed tarball installs into an empty project and runs. A final `summary` job writes the verdict table
+- validate edits with `actionlint .github/workflows/*.yml` before pushing; it is not wired into `bun run lint` or the hooks
+
 ## Publishing
 
 The npm `latest` is 0.0.12, which is the old dependency-heavy implementation. The rewrite here is unpublished, so bump `version` before `bun publish`. Bump with `bun pm version <level> -m "BM: %s"` so the release commit keeps the subject prefix.
@@ -78,5 +86,5 @@ Full house style lives in `.claude/skills/commit-format/SKILL.md`; invoke that s
 
 ## Pull Requests
 
-- Every PR title starts with `BM: ` too. Nothing in CI checks this; there is no `.github/` directory.
+- Every PR title starts with `BM: ` too. Nothing in CI checks this: the workflows check the code, not the prose.
 - Keep the body minimal and favor bullet points, with no "Generated with" footer.
