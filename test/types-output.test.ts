@@ -112,7 +112,7 @@ describe('meta.d.ts', () => {
 
   it('overwrites an existing meta.d.ts', () => {
     const dir = makeProject();
-    fs.writeFileSync(dtsPath(dir), 'interface BuildMeta { stale: true }\n');
+    fs.writeFileSync(dtsPath(dir), 'type BuildMeta = { stale: true };\n');
 
     run(dir, ['--src-folder', 'src']);
 

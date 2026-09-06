@@ -14,6 +14,7 @@ Tests live in `test/`, one file per area, with shared fixtures in `test/helpers.
 - Bun is the toolchain: `bun run test` builds and runs the suite, `bunfig.toml` holds the install config, and `.bun-version` pins the version.
 - The shipped CLI stays runtime-agnostic. The shebang lives at the top of `src/build-meta.ts` and `tsgo` preserves it, and the emit is stdlib-only CommonJS so published consumers do not need Bun or TypeScript; `engines` documents both runtimes (`bun >=1.3.0`, `node >=24.0.0`), and `git` must be on the PATH.
 - No `any` and no `as unknown as` casts. The one assertion in the CLI is `require(resolve('package.json')) as PackageJson`, because `require` is untyped by design.
+- No `interface`, in the source or in the emitted `meta.d.ts`. Every object shape is a `type` alias. The single exception is the `interface Window` in the declaration: augmenting the DOM's `Window` is declaration merging, which only interfaces do, and `type Window` collides with `lib.dom.d.ts` as a duplicate identifier.
 - Reads `package.json` and resolves `--src-folder` and `--json-out-dir` from the current working directory, not the git root.
 - `buildDate` is hardcoded to `America/Toronto`. `buildDateISO` is UTC, and both come from one `Date` so they cannot disagree.
 - Both outputs are serialized from a single in-memory object, so `meta.js` and `meta.json` can never drift apart.
