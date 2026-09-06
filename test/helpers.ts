@@ -173,6 +173,33 @@ export function readMetaJs(dir: string, srcFolder = 'src'): Meta {
   return loadMetaJs(jsPath(dir, srcFolder), { window: true }) as Meta;
 }
 
+export function dtsPath(dir: string, srcFolder = 'src'): string {
+  return path.join(dir, srcFolder, 'meta.d.ts');
+}
+
+const TSGO = path.resolve(__dirname, '..', 'node_modules', '.bin', 'tsgo');
+
+// Type checks a consumer snippet against the generated meta.d.ts, the way that
+// consumer's own build would. Compiling for real is the only thing that proves
+// the declaration augments Window; asserting on the text of the file would only
+// prove it contains the right words.
+export function typecheck(
+  dir: string,
+  srcFolder: string,
+  source: string,
+): SpawnSyncReturns<string> {
+  const project = path.join(dir, srcFolder);
+  fs.writeFileSync(path.join(project, 'consumer.ts'), source);
+  fs.writeFileSync(
+    path.join(project, 'tsconfig.json'),
+    JSON.stringify({
+      compilerOptions: { strict: true, noEmit: true, lib: ['ES2022', 'DOM'], types: [] },
+      include: ['meta.d.ts', 'consumer.ts'],
+    }),
+  );
+  return spawnSync(TSGO, ['-p', project], { encoding: 'utf8', env: cleanEnv() });
+}
+
 // Built from toLocaleString rather than formatToParts so the expectation is an
 // independent formatting of the same instant, not a copy of the CLI's code.
 // ICU puts a narrow no-break space before AM/PM, hence the loose split.

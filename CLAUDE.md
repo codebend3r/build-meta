@@ -1,12 +1,12 @@
 # build-meta
 
-CLI that writes a `meta.js` (version, build date, ISO build date, env, git branch, last commit) into a target folder. The file is a plain script that installs the object on `window['build-meta']`, falling back to `globalThis`, and never overwrites an existing value. A `meta.json` is opt in via `--output-json`, or `--json-out-dir <dir>` which implies it and defaults to the working directory.
+CLI that writes a `meta.js` (version, build date, ISO build date, env, git branch, last commit) and a `meta.d.ts` into a target folder. The script installs the object on `window['build-meta']`, falling back to `globalThis`, and never overwrites an existing value. The declaration is a global script, never a module, so the `Window` augmentation stays global; its fields come from the same object, so it cannot promise a key the script does not emit. A `meta.json` is opt in via `--output-json`, or `--json-out-dir <dir>` which implies it and defaults to the working directory.
 
 ## Layout
 
 All logic lives in `src/build-meta.ts`, a single TypeScript file. `tsgo` compiles it to `bin/build-meta.js`, which is the file the package ships and the only build output. `bin/` is gitignored; `bun run build` and the `prepare` script regenerate it.
 
-Tests live in `test/`, one file per area, with shared fixtures in `test/helpers.ts`. `js-output.test.ts` covers the script artifact, `json-output.test.ts` the two JSON flags, and `meta-output.test.ts` the values themselves. The emitted `meta.js` is loaded for real in a child process and the installed global read back, never pattern matched as text. They use `bun:test` and no test framework, and run straight off the TypeScript, since Bun transpiles it. The CLI does all its work at module load, so every test spawns the compiled `bin/build-meta.js` in a child process against a throwaway git repo under the OS temp directory. Under `bun test` that child runs on the Bun binary, since the fixtures spawn `process.execPath`.
+Tests live in `test/`, one file per area, with shared fixtures in `test/helpers.ts`. `js-output.test.ts` covers the script artifact, `types-output.test.ts` the declaration, `json-output.test.ts` the two JSON flags, and `meta-output.test.ts` the values themselves. The emitted `meta.js` is loaded for real in a child process and the installed global read back, and `meta.d.ts` is compiled with `tsgo` against sample consumer code, never pattern matched as text. They use `bun:test` and no test framework, and run straight off the TypeScript, since Bun transpiles it. The CLI does all its work at module load, so every test spawns the compiled `bin/build-meta.js` in a child process against a throwaway git repo under the OS temp directory. Under `bun test` that child runs on the Bun binary, since the fixtures spawn `process.execPath`.
 
 ## Constraints
 
