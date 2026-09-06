@@ -29,11 +29,21 @@ const GIT_ENV = {
   GIT_TERMINAL_PROMPT: '0',
 };
 
+// Git exports GIT_AUTHOR_NAME, GIT_AUTHOR_DATE, GIT_INDEX_FILE and friends to
+// every hook it runs, and the `pre-commit` hook runs this suite. Inheriting
+// them would author the fixture commits as whoever is committing and point the
+// fixtures at the outer index, so every GIT_* variable is dropped and only the
+// ones the fixtures set themselves are put back.
+function cleanEnv(extra = {}) {
+  const inherited = Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_'));
+  return { ...Object.fromEntries(inherited), ...GIT_ENV, ...extra };
+}
+
 function git(cwd, args) {
   const result = spawnSync('git', args, {
     cwd,
     encoding: 'utf8',
-    env: { ...process.env, ...GIT_ENV },
+    env: cleanEnv(),
   });
   if (result.status !== 0) {
     throw new Error(`git ${args.join(' ')} failed in ${cwd}\n${result.stderr}`);
@@ -80,7 +90,7 @@ function writePkg(dir, pkg) {
 // CLI on the runtime the repo now develops against. The file is stdlib-only
 // CJS, so bun and node both run it unchanged.
 function run(cwd, args = [], env = {}) {
-  const base = { ...process.env, ...GIT_ENV, GIT_CEILING_DIRECTORIES: TMP_ROOT };
+  const base = cleanEnv({ GIT_CEILING_DIRECTORIES: TMP_ROOT });
   delete base.NODE_ENV;
   delete base.PROFILE;
   return spawnSync(process.execPath, [CLI, ...args], {
