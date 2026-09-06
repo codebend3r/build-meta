@@ -1,64 +1,42 @@
-#! /usr/bin/env node
+#!/usr/bin/env node
+const { execSync } = require('child_process');
+const { writeFileSync } = require('fs');
+const path = require('path');
+const { parseArgs } = require('util');
 
-require('moment-timezone');
-const argv = require('yargs').argv
-const childProcess = require('child_process');
-const slashes = require('remove-trailing-slash');
-const cwd = require('path').resolve();
-const jsonfile = require('jsonfile');
-const moment = require('moment');
-const currentBranchName = require('current-git-branch');
+const { values: flags } = parseArgs({
+  options: {
+    'src-folder': { type: 'string' },
+    env: { type: 'string' },
+  },
+});
 
-const commonPath = slashes(cwd);
-const localPackageJson = require(`${commonPath}/package.json`);
-
-const buildEnv = argv.env || process.env.NODE_ENV || process.env.PROFILE || 'development';
-const srcFolder = slashes(argv['src-folder']);
-
-const file = `${commonPath}/${srcFolder}/meta.json`;
-
-function getTime() {
-  const now = new Date();
-  const edtTz = 'America/Toronto';
-  const dateFormat = 'MM-DD-YYYY hh:mm:ss A [ET]';
-
-  return moment(now).tz(edtTz).format(dateFormat);
+if (!flags['src-folder']) {
+  console.error('build-meta: --src-folder <dir> is required');
+  process.exit(1);
 }
 
-function showBuildMeta() {
-  let lastCommitHash = null;
-  let lastCommitAuthor = null;
+const git = (args) =>
+  execSync(`git ${args}`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] }).trim();
 
-  childProcess.exec('git branch | grep \* | cut -d \' \' -f2', (branchName, commitHash) => {
-    childProcess.exec('git rev-parse HEAD', (commitHashError, commitHash) => {
-      commitHashError && console.warn(`process exec error: ${commitHashError}`);
-  
-      lastCommitHash = commitHash;
-  
-      childProcess.exec('git log -1 --pretty=format:\'%an\'', (commitAuthorError, commitAuthor) => {
-        commitAuthorError && console.warn(`process exec error: ${commitAuthorError}`);
-    
-        lastCommitAuthor = commitAuthor;
-  
-        const meta = {
-          version: localPackageJson.version,
-          buildDate: getTime(),
-          buildEnv,
-          branchName: currentBranchName(),
-          lastCommitAuthor,
-          lastCommitHash,
-        };
-      
-        console.info({ meta });
-      
-        jsonfile.writeFile(file, meta, {
-          spaces: 2
-        }, (err) => {
-          err && console.warn(`write file error: ${err}`);
-        });
-      });
-    });
-  });
+function buildDate() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Toronto',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
+  }).formatToParts(new Date());
+  const p = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return `${p.month}-${p.day}-${p.year} ${p.hour}:${p.minute}:${p.second} ${p.dayPeriod} ET`;
 }
 
-showBuildMeta();
+const meta = {
+  version: require(path.resolve('package.json')).version,
+  buildDate: buildDate(),
+  buildEnv: flags.env || process.env.NODE_ENV || process.env.PROFILE || 'development',
+  branchName: git('rev-parse --abbrev-ref HEAD'),
+  lastCommitAuthor: git('log -1 --format=%an'),
+  lastCommitHash: git('rev-parse HEAD'),
+};
+
+writeFileSync(path.resolve(flags['src-folder'], 'meta.json'), JSON.stringify(meta, null, 2) + '\n');
+console.info(meta);
