@@ -1,0 +1,197 @@
+# CI for build-meta.
+#
+# What this is defending. The package ships one generated file, `bin/build-meta.js`,
+# to consumers who may be running plain node with no bun and no TypeScript
+# anywhere in sight. The three properties that make that safe are invisible to
+# the local `bun run test` loop, so each gets its own job here:
+#
+#   * the suite passes (the `checks` job, one step per gate so a red run names
+#     the tool that failed rather than burying it inside `bun run test`)
+#   * the compiled emit actually runs on node 24, not just on the bun that
+#     produced it (the `node-parity` job)
+#   * the dependency count is still zero and the emit still reaches for nothing
+#     but node builtins (the `dependencies` job)
+#
+# Every run step is a `bun run <script>` where a script exists, so CI and the
+# `pre-commit` hook stay one gate rather than two renditions that drift.
+
+name: 🧪 Pull request checks
+
+on:
+  pull_request:
+  workflow_call:
+
+# Read only. Nothing here writes to the repo, publishes, or deploys.
+permissions:
+  contents: read
+
+# A newer push to the same branch cancels the in-flight run for that branch. A
+# run on main is never cancelled, because it is the record of whether the merged
+# commit was green.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  checks:
+    name: 🩺 Lint, types and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v7
+
+      - name: 🥟 Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+
+      # --ignore-scripts skips the `prepare` script, which installs git hooks
+      # and builds `bin/`. Hooks have no business on a runner, and the build
+      # steps below do the building.
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: 🔍 Lint (oxlint)
+        run: bun run lint
+
+      - name: 💅 Check formatting (oxfmt)
+        run: bun run format:check
+
+      - name: 🧬 Typecheck src and test (tsgo)
+        run: bun run typecheck
+
+      - name: 🏗️ Build the shipped CLI (tsgo)
+        run: bun run build
+
+      # Rebuilds `bin/` first, by design: the suite spawns the compiled file, so
+      # it must never run against a stale one.
+      - name: 🧪 Test
+        run: bun run test
+
+  # The whole point of compiling to stdlib-only CommonJS is that a consumer needs
+  # neither bun nor TypeScript. Only a run on a bare node proves that, and it is
+  # exactly the property a well meaning edit to `src/build-meta.ts` would break
+  # without any local test noticing.
+  node-parity:
+    name: 🟢 Shipped CLI on Node 24
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v7
+
+      - name: 🥟 Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+
+      - name: 🟩 Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: 🏗️ Build the shipped CLI
+        run: bun run build
+
+      - name: 🚦 Run it on Node against a throwaway repo
+        run: |
+          cli="$PWD/bin/build-meta.js"
+          work=$(mktemp -d)
+          cd "$work"
+          mkdir -p src public
+          echo '{"name":"parity","version":"9.9.9"}' > package.json
+          git init -q -b main
+          git -c user.name=ci -c user.email=ci@example.com commit -q --allow-empty -m 'initial commit'
+
+          node "$cli" --src-folder src --env production --json-out-dir public
+
+          test -s src/meta.js    || { echo "::error::💥 src/meta.js is missing or empty"; exit 1; }
+          test -s src/meta.d.ts  || { echo "::error::💥 src/meta.d.ts is missing or empty"; exit 1; }
+          test -s public/meta.json || { echo "::error::💥 public/meta.json is missing or empty"; exit 1; }
+          test ! -e meta.json    || { echo "::error::💥 meta.json escaped --json-out-dir"; exit 1; }
+
+          # Load the artifact the way a page would and read the global back, so
+          # this asserts the emitted script runs, not merely that it exists.
+          node -e "
+            globalThis.window = globalThis;
+            require('$work/src/meta.js');
+            const meta = window['build-meta'];
+            if (meta.version !== '9.9.9') throw new Error('version is ' + meta.version);
+            if (meta.buildEnv !== 'production') throw new Error('buildEnv is ' + meta.buildEnv);
+            if (!Number.isFinite(Date.parse(meta.buildDateISO))) throw new Error('buildDateISO is ' + meta.buildDateISO);
+            console.log('✅ window[\"build-meta\"] =', meta);
+          "
+
+      - name: 🥟 Run it on Bun too
+        run: |
+          cli="$PWD/bin/build-meta.js"
+          work=$(mktemp -d)
+          cd "$work"
+          mkdir -p src
+          echo '{"name":"parity","version":"9.9.9"}' > package.json
+          git init -q -b main
+          git -c user.name=ci -c user.email=ci@example.com commit -q --allow-empty -m 'initial commit'
+
+          bun "$cli" --src-folder src
+          test -s src/meta.js || { echo "::error::💥 src/meta.js is missing or empty under Bun"; exit 1; }
+          echo "✅ Same file, both runtimes"
+
+  # Zero runtime dependencies is the reason this rewrite exists. It is one line
+  # in package.json away from being untrue again, and nothing else here would
+  # fail if it were.
+  dependencies:
+    name: 📦 Zero runtime dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v7
+
+      - name: 🥟 Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+
+      - name: 🧮 Assert no dependencies or peerDependencies
+        run: |
+          count=$(bun -e "
+            const pkg = require('./package.json');
+            const names = [
+              ...Object.keys(pkg.dependencies ?? {}),
+              ...Object.keys(pkg.peerDependencies ?? {}),
+              ...Object.keys(pkg.optionalDependencies ?? {}),
+            ];
+            if (names.length) console.error('Runtime dependencies found: ' + names.join(', '));
+            console.log(names.length);
+          ")
+          if [ "$count" != "0" ]; then
+            echo "::error::💥 build-meta ships $count runtime dependencies; it is meant to ship none"
+            exit 1
+          fi
+          echo "✅ Still dependency free"
+
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: 🏗️ Build the shipped CLI
+        run: bun run build
+
+      # The emit is CommonJS, so every import in the source becomes a literal
+      # `require("...")` here. Anything that is not a `node:` builtin means the
+      # shipped file would need something installed alongside it.
+      - name: 🕵️ Assert the emit reaches for node builtins only
+        run: |
+          foreign=$(grep -oE 'require\("[^"]+"\)' bin/build-meta.js | grep -v 'require("node:' || true)
+          if [ -n "$foreign" ]; then
+            echo "::error::💥 bin/build-meta.js requires something outside the stdlib: $foreign"
+            exit 1
+          fi
+          echo "✅ stdlib only: $(grep -oE 'require\("node:[^"]+"\)' bin/build-meta.js | sort -u | tr '\n' ' ')"

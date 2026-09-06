@@ -1,0 +1,141 @@
+# Post-merge check for build-meta.
+#
+# `bun pm version` and a plain `git push` both land on main with no pull request,
+# so a direct-to-main commit is checked nowhere else. This runs the pull request
+# suite again on the merged commit, then adds the checks that only make sense
+# once something has landed: that the package the registry would receive is
+# still shaped the way `files` promises, and that the compiled CLI in that
+# package is executable and self-contained.
+
+name: ✅ Sanity check
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Never cancelled. Each run on main is the record of whether that commit was
+# green, so superseding it would erase the answer.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # Runs pull-request-checks.yml rather than restating its steps. A copy would
+  # drift the moment one of the two is edited alone.
+  checks:
+    name: 🧪 Pull request suite
+    uses: ./.github/workflows/pull-request-checks.yml
+
+  package:
+    name: 📮 Publishable package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v7
+
+      - name: 🥟 Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+
+      - name: 🟩 Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: 🏗️ Build the shipped CLI
+        run: bun run build
+
+      # `files` is bin plus CHANGES.md; npm adds README.md and package.json to
+      # every tarball on its own. Anything else in this list is something that
+      # leaked into the published package.
+      - name: 🧾 Assert the tarball contents
+        run: |
+          actual=$(npm pack --dry-run --ignore-scripts --json | node -e "
+            let raw = '';
+            process.stdin.on('data', (chunk) => (raw += chunk));
+            process.stdin.on('end', () => {
+              const files = JSON.parse(raw)[0].files.map((f) => f.path).sort();
+              console.log(files.join(' '));
+            });
+          ")
+          expected='CHANGES.md README.md bin/build-meta.js package.json'
+          echo "📦 tarball: $actual"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::💥 Published files changed. Expected [$expected], got [$actual]"
+            exit 1
+          fi
+          echo "✅ Tarball is exactly what \`files\` promises"
+
+      - name: 🔑 Assert the CLI is executable and self-describing
+        run: |
+          test -x bin/build-meta.js || { echo "::error::💥 bin/build-meta.js is not executable"; exit 1; }
+          shebang=$(head -1 bin/build-meta.js)
+          if [ "$shebang" != '#!/usr/bin/env node' ]; then
+            echo "::error::💥 Shebang is '$shebang', expected '#!/usr/bin/env node'"
+            exit 1
+          fi
+          echo "✅ Executable, with the shebang tsgo carried through from the source"
+
+      # Installs the tarball into an empty project the way a consumer would, then
+      # runs the installed binary. Catches a broken `bin` mapping or a missing
+      # file, neither of which the repo-local suite can see.
+      - name: 🚚 Install the tarball and run the binary
+        run: |
+          tarball="$PWD/$(npm pack --ignore-scripts --silent)"
+          work=$(mktemp -d)
+          cd "$work"
+          mkdir -p src
+          echo '{"name":"consumer","version":"3.2.1"}' > package.json
+          git init -q -b main
+          git -c user.name=ci -c user.email=ci@example.com commit -q --allow-empty -m 'initial commit'
+
+          npm install --no-audit --no-fund --silent "$tarball"
+          ./node_modules/.bin/build-meta --src-folder src --output-json
+
+          node -e "
+            const meta = require('$work/meta.json');
+            if (meta.version !== '3.2.1') throw new Error('version is ' + meta.version);
+            for (const key of ['buildDate', 'buildDateISO', 'buildEnv', 'branchName', 'lastCommitAuthor', 'lastCommitHash']) {
+              if (typeof meta[key] !== 'string' || !meta[key]) throw new Error(key + ' is ' + meta[key]);
+            }
+            console.log('✅ Installed binary produced', meta);
+          "
+
+  summary:
+    name: 🎉 Sanity verdict
+    runs-on: ubuntu-latest
+    needs: [checks, package]
+    # Runs even when a check fails, so the summary reports the failure too.
+    if: always()
+    steps:
+      - name: 📝 Write summary
+        run: |
+          {
+            echo "## 🩺 Sanity check for \`${GITHUB_SHA:0:7}\`"
+            echo ""
+            echo "| Check | Result |"
+            echo "| --- | --- |"
+            echo "| 🧪 Pull request suite | ${{ needs.checks.result == 'success' && '✅ passed' || '❌ failed' }} |"
+            echo "| 📮 Publishable package | ${{ needs.package.result == 'success' && '✅ passed' || '❌ failed' }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 🚨 Fail if anything broke
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "::error::🔥 ${GITHUB_SHA:0:7} broke main, check the failed job above"
+          exit 1
+
+      - name: 🎊 All clear
+        run: echo "🚀 ${GITHUB_SHA:0:7} landed on main clean" >> "$GITHUB_STEP_SUMMARY"

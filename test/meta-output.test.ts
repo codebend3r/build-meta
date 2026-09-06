@@ -2,33 +2,20 @@ import { afterAll, describe, expect, it } from 'bun:test';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { cleanup, git, makeProject, metaPath, readMeta, run, writePkg } from './helpers';
+import { cleanup, git, jsPath, makeProject, readMetaJs, run, writePkg } from './helpers';
 
 afterAll(cleanup);
 
-describe('meta.json contents', () => {
-  it('writes the six documented keys in order', () => {
-    const dir = makeProject();
-
-    const result = run(dir, ['--src-folder', 'src']);
-
-    expect(result.status).toBe(0);
-    expect(Object.keys(readMeta(dir))).toEqual([
-      'version',
-      'buildDate',
-      'buildEnv',
-      'branchName',
-      'lastCommitAuthor',
-      'lastCommitHash',
-    ]);
-  });
-
+// The values themselves, read back from the artifact a plain run produces.
+// The shape of each output is js-output.test.ts's and json-output.test.ts's
+// business; this file only cares that the numbers and strings are right.
+describe('meta contents', () => {
   it('takes version from the package.json in the working directory', () => {
     const dir = makeProject({ pkg: { name: 'fixture', version: '4.5.6-beta.1' } });
 
     run(dir, ['--src-folder', 'src']);
 
-    expect(readMeta(dir).version).toBe('4.5.6-beta.1');
+    expect(readMetaJs(dir).version).toBe('4.5.6-beta.1');
   });
 
   // The CLI resolves package.json from the current working directory, so a
@@ -43,10 +30,10 @@ describe('meta.json contents', () => {
     const result = run(nested, ['--src-folder', 'src']);
 
     expect(result.status).toBe(0);
-    const meta = readMeta(nested);
+    const meta = readMetaJs(nested);
     expect(meta.version).toBe('9.9.9');
     expect(meta.lastCommitHash).toBe(git(dir, ['rev-parse', 'HEAD']));
-    expect(fs.existsSync(metaPath(dir))).toBe(false);
+    expect(fs.existsSync(jsPath(dir))).toBe(false);
   });
 
   it('omits version when the package.json has none', () => {
@@ -55,7 +42,7 @@ describe('meta.json contents', () => {
     const result = run(dir, ['--src-folder', 'src']);
 
     expect(result.status).toBe(0);
-    expect('version' in readMeta(dir)).toBe(false);
+    expect('version' in readMetaJs(dir)).toBe(false);
   });
 
   it('records the checked out branch, slashes and all', () => {
@@ -63,7 +50,7 @@ describe('meta.json contents', () => {
 
     run(dir, ['--src-folder', 'src']);
 
-    expect(readMeta(dir).branchName).toBe('release/4.x');
+    expect(readMetaJs(dir).branchName).toBe('release/4.x');
   });
 
   // What CI usually produces: a bare commit checkout, where the branch name
@@ -74,7 +61,7 @@ describe('meta.json contents', () => {
 
     run(dir, ['--src-folder', 'src']);
 
-    expect(readMeta(dir).branchName).toBe('HEAD');
+    expect(readMetaJs(dir).branchName).toBe('HEAD');
   });
 
   it('records the author and full hash of the last commit', () => {
@@ -83,20 +70,10 @@ describe('meta.json contents', () => {
 
     run(dir, ['--src-folder', 'src']);
 
-    const meta = readMeta(dir);
+    const meta = readMetaJs(dir);
     expect(meta.lastCommitAuthor).toBe('Ada Lovelace');
     expect(meta.lastCommitHash).toBe(git(dir, ['rev-parse', 'HEAD']));
     expect(meta.lastCommitHash).toMatch(/^[0-9a-f]{40}$/u);
-  });
-
-  it('formats the file with two-space indentation and a trailing newline', () => {
-    const dir = makeProject();
-
-    run(dir, ['--src-folder', 'src']);
-
-    const contents = fs.readFileSync(metaPath(dir), 'utf8');
-    expect(contents).toMatch(/^\{\n  "version": "1\.2\.3",\n/u);
-    expect(contents.endsWith('}\n')).toBe(true);
   });
 
   // The CLI hands the object to console.info, so the quoting is the runtime's
@@ -104,7 +81,7 @@ describe('meta.json contents', () => {
   // single ones. Both are accepted, the assertion is about the values.
   //
   // Every value the CLI writes is a string, and JSON has no undefined, so the
-  // entries of a parsed meta.json are string pairs even though Meta marks
+  // entries of the meta read back are string pairs even though Meta marks
   // `version` optional.
   it('prints the same object to stdout and leaves stderr empty', () => {
     const dir = makeProject();
@@ -112,7 +89,7 @@ describe('meta.json contents', () => {
     const result = run(dir, ['--src-folder', 'src']);
 
     expect(result.stderr).toBe('');
-    const meta = readMeta(dir);
+    const meta = readMetaJs(dir);
     for (const [key, value] of Object.entries(meta) as [string, string][]) {
       expect(result.stdout).toMatch(
         new RegExp(

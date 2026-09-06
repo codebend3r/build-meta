@@ -2,13 +2,13 @@ import { afterAll, describe, expect, it } from 'bun:test';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { cleanup, makeProject, metaPath, run, tempDir } from './helpers';
+import { cleanup, jsPath, makeProject, run, tempDir } from './helpers';
 
 afterAll(cleanup);
 
 // Everything except the missing --src-folder surfaces as an uncaught
 // exception. The point of each assertion is the non-zero exit plus the fact
-// that no stale meta.json is left behind for a build to pick up.
+// that no stale meta.js is left behind for a build to pick up.
 describe('failure modes', () => {
   it('fails when the working directory has no package.json', () => {
     const dir = makeProject({ pkg: null });
@@ -17,7 +17,7 @@ describe('failure modes', () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/Cannot find module .*package\.json/u);
-    expect(fs.existsSync(metaPath(dir))).toBe(false);
+    expect(fs.existsSync(jsPath(dir))).toBe(false);
   });
 
   it('fails outside a git repository and passes git stderr through', () => {
@@ -29,7 +29,7 @@ describe('failure modes', () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/not a git repository/iu);
-    expect(fs.existsSync(metaPath(dir))).toBe(false);
+    expect(fs.existsSync(jsPath(dir))).toBe(false);
   });
 
   it('fails when git is not on the PATH', () => {
@@ -39,7 +39,7 @@ describe('failure modes', () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/git.*not found/iu);
-    expect(fs.existsSync(metaPath(dir))).toBe(false);
+    expect(fs.existsSync(jsPath(dir))).toBe(false);
   });
 
   // The folder must already exist; the CLI deliberately does not create it.
@@ -71,7 +71,7 @@ describe('failure modes', () => {
 
     const result = run(dir, ['--src-folder', 'src']);
 
-    expect(result.stderr).toMatch(/ENOENT.*meta\.json/su);
+    expect(result.stderr).toMatch(/ENOENT.*meta\.js/su);
     expect(result.stderr).not.toMatch(/not a git repository/iu);
     expect(result.stdout).toBe('');
   });

@@ -2,7 +2,16 @@ import { afterAll, describe, expect, it } from 'bun:test';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { cleanup, makeProject, type Meta, metaPath, readMeta, run, tempDir } from './helpers';
+import {
+  cleanup,
+  jsPath,
+  loadMetaJs,
+  makeProject,
+  type Meta,
+  readMetaJs,
+  run,
+  tempDir,
+} from './helpers';
 
 afterAll(cleanup);
 
@@ -14,7 +23,7 @@ describe('--src-folder resolution', () => {
     const result = run(dir, ['--src-folder', 'build/dist']);
 
     expect(result.status).toBe(0);
-    expect(readMeta(dir, 'build/dist').version).toBe('1.2.3');
+    expect(readMetaJs(dir, 'build/dist').version).toBe('1.2.3');
   });
 
   it('accepts . for the working directory itself', () => {
@@ -23,7 +32,7 @@ describe('--src-folder resolution', () => {
     const result = run(dir, ['--src-folder', '.']);
 
     expect(result.status).toBe(0);
-    expect(readMeta(dir, '.').version).toBe('1.2.3');
+    expect(readMetaJs(dir, '.').version).toBe('1.2.3');
   });
 
   it('accepts an absolute path outside the repository', () => {
@@ -33,9 +42,9 @@ describe('--src-folder resolution', () => {
     const result = run(dir, ['--src-folder', outside]);
 
     expect(result.status).toBe(0);
-    const written = JSON.parse(fs.readFileSync(path.join(outside, 'meta.json'), 'utf8')) as Meta;
+    const written = loadMetaJs(path.join(outside, 'meta.js'), { window: true }) as Meta;
     expect(written.version).toBe('1.2.3');
-    expect(fs.existsSync(metaPath(dir))).toBe(false);
+    expect(fs.existsSync(jsPath(dir))).toBe(false);
   });
 
   it('resolves a relative path against the working directory, not the git root', () => {
@@ -46,16 +55,7 @@ describe('--src-folder resolution', () => {
 
     run(nested, ['--src-folder', 'src']);
 
-    expect(fs.existsSync(path.join(nested, 'src', 'meta.json'))).toBe(true);
-    expect(fs.existsSync(metaPath(dir))).toBe(false);
-  });
-
-  it('overwrites an existing meta.json', () => {
-    const dir = makeProject();
-    fs.writeFileSync(metaPath(dir), '{"version":"stale"}\n');
-
-    run(dir, ['--src-folder', 'src']);
-
-    expect(readMeta(dir).version).toBe('1.2.3');
+    expect(fs.existsSync(path.join(nested, 'src', 'meta.js'))).toBe(true);
+    expect(fs.existsSync(jsPath(dir))).toBe(false);
   });
 });
