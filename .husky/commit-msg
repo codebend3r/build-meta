@@ -1,0 +1,40 @@
+# Enforces the rules in `.claude/skills/commit-format/SKILL.md`. There is no
+# `.github/` directory and nothing in CI checks any of this, so this hook is
+# the only gate a bad message hits.
+
+msg_file="$1"
+
+# git's own comment lines and the diff `--verbose` appends are not part of the
+# message, so they are dropped before anything is inspected.
+message=$(sed -e '/^# ------------------------ >8 /,$d' -e '/^#/d' "$msg_file")
+subject=$(printf '%s\n' "$message" | sed '/^[[:space:]]*$/d' | head -1)
+
+fail() {
+  echo "commit-msg: $1" >&2
+  echo "commit-msg: see .claude/skills/commit-format/SKILL.md" >&2
+  exit 1
+}
+
+# git writes these subjects itself, and a fixup keeps the subject of the commit
+# it will be squashed into, so none of them are the author's to prefix.
+case "$subject" in
+  'Merge '*|'Revert '*|'fixup! '*|'squash! '*|'amend! '*) exit 0 ;;
+esac
+
+case "$subject" in
+  'BM: '?*) ;;
+  *) fail "subject must start with 'BM: ', got: ${subject:-<empty>}" ;;
+esac
+
+# `CLAUDE.md` and `.claude/` are real paths in this repo and get named in
+# legitimate bullets, so they are removed before the vendor scan rather than
+# tripping it.
+scan=$(printf '%s\n' "$message" | sed -e 's|CLAUDE\.md||g' -e 's|\.claude/||g')
+
+if printf '%s\n' "$scan" | grep -qiE 'claude|anthropic|copilot|cursor|codex|openai|chatgpt|aider|devin|windsurf|ai-(generated|assisted)|generated with'; then
+  fail 'no agent attribution anywhere in the message'
+fi
+
+if printf '%s\n' "$message" | grep -q '[—–]'; then
+  fail 'no em dashes or en dashes; rephrase with commas, semicolons or periods'
+fi

@@ -1,0 +1,3 @@
+# The suite spawns the CLI per case, so it takes a few seconds. That is the
+# whole check: there is no lint step and no build step.
+bun test
