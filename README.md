@@ -70,6 +70,14 @@ Only the first case is handled with a friendly message; the rest surface as unca
 
 `branchName` comes from `git rev-parse --abbrev-ref HEAD`, which returns the string `HEAD` when the repository is in a detached HEAD state. Many CI systems check out a detached commit, so expect `"branchName": "HEAD"` there unless a branch is checked out explicitly.
 
+## Tests
+
+```sh
+npm test
+```
+
+Node 24 is pinned for the repo in `.node-version` and `.nvmrc`, so `fnm use` or `nvm use` selects the right runtime before running anything. The suite runs on the `node:test` runner with no dependencies. Each test builds a temporary project with its own git repository and runs the CLI against it, so it checks the file that actually ships rather than an importable copy of its logic.
+
 ## Use in the app
 
 `meta.json` is a plain JSON file, so any bundler that resolves JSON imports can pull it in. One way to make it inspectable from the browser console:

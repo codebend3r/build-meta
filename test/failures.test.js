@@ -1,0 +1,81 @@
+'use strict';
+
+const { after, describe, it } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const { cleanup, makeProject, metaPath, run, tempDir } = require('./helpers');
+
+after(cleanup);
+
+// Everything except the missing --src-folder surfaces as an uncaught
+// exception. The point of each assertion is the non-zero exit plus the fact
+// that no stale meta.json is left behind for a build to pick up.
+describe('failure modes', () => {
+  it('fails when the working directory has no package.json', () => {
+    const dir = makeProject({ pkg: null });
+
+    const result = run(dir, ['--src-folder', 'src']);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Cannot find module .*package\.json/);
+    assert.equal(fs.existsSync(metaPath(dir)), false);
+  });
+
+  it('fails outside a git repository and passes git stderr through', () => {
+    const dir = tempDir();
+    fs.mkdirSync(path.join(dir, 'src'));
+    fs.writeFileSync(path.join(dir, 'package.json'), '{"name":"fixture","version":"1.2.3"}\n');
+
+    const result = run(dir, ['--src-folder', 'src']);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /not a git repository/i);
+    assert.equal(fs.existsSync(metaPath(dir)), false);
+  });
+
+  it('fails when git is not on the PATH', () => {
+    const dir = makeProject();
+
+    const result = run(dir, ['--src-folder', 'src'], { PATH: '/nonexistent' });
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /git.*not found/i);
+    assert.equal(fs.existsSync(metaPath(dir)), false);
+  });
+
+  // The folder must already exist; the CLI deliberately does not create it.
+  it('fails when the target folder does not exist', () => {
+    const dir = makeProject({ srcFolder: null });
+
+    const result = run(dir, ['--src-folder', 'src']);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /ENOENT/);
+    assert.equal(fs.existsSync(path.join(dir, 'src')), false);
+  });
+
+  it('fails when the target folder is a file', () => {
+    const dir = makeProject();
+    fs.writeFileSync(path.join(dir, 'notes.txt'), 'not a folder\n');
+
+    const result = run(dir, ['--src-folder', 'notes.txt']);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /ENOTDIR/);
+    assert.equal(fs.readFileSync(path.join(dir, 'notes.txt'), 'utf8'), 'not a folder\n');
+  });
+
+  // The git work happens before the write, so a bad --src-folder fails at the
+  // very end: the error is the write's, and nothing has been printed yet.
+  it('runs the git commands before it discovers a bad target folder', () => {
+    const dir = makeProject({ srcFolder: null });
+
+    const result = run(dir, ['--src-folder', 'src']);
+
+    assert.match(result.stderr, /ENOENT.*meta\.json/s);
+    assert.doesNotMatch(result.stderr, /not a git repository/i);
+    assert.equal(result.stdout, '');
+  });
+});
