@@ -28,8 +28,13 @@ permissions:
 # A newer push to the same branch cancels the in-flight run for that branch. A
 # run on main is never cancelled, because it is the record of whether the merged
 # commit was green.
+#
+# The group name is a literal rather than `github.workflow`, which resolves to
+# the *caller's* name when this workflow is reached through `workflow_call`.
+# With `github.workflow` here, a call from `sanity-check.yml` asked for the group
+# its own caller already held, and the deadlock killed the job before it started.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: pull-request-checks-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:

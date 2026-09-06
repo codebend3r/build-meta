@@ -2,6 +2,11 @@
 
 CLI that writes a `meta.js` (version, build date, ISO build date, env, git branch, last commit) and a `meta.d.ts` into a target folder. The script installs the object on `window['build-meta']`, falling back to `globalThis`, and never overwrites an existing value. The declaration is a global script, never a module, so the `Window` augmentation stays global; its fields come from the same object, so it cannot promise a key the script does not emit. A `meta.json` is opt in via `--output-json`, or `--json-out-dir <dir>` which implies it and defaults to the working directory.
 
+## Ask first
+
+- Never create a branch, commit, push, create a workflow, tag a version, bump a version, or split a change across commits unless I tell you to.
+- When I ask for a change, make only that change and nothing else.
+
 ## Layout
 
 All logic lives in `src/build-meta.ts`, a single TypeScript file. `tsgo` compiles it to `bin/build-meta.js`, which is the file the package ships and the only build output. `bin/` is gitignored; `bun run build` and the `prepare` script regenerate it.
