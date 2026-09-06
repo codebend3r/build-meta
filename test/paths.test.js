@@ -35,7 +35,9 @@ describe('--src-folder resolution', () => {
     const result = run(dir, ['--src-folder', outside]);
 
     expect(result.status).toBe(0);
-    expect(JSON.parse(fs.readFileSync(path.join(outside, 'meta.json'), 'utf8')).version).toBe('1.2.3');
+    expect(JSON.parse(fs.readFileSync(path.join(outside, 'meta.json'), 'utf8')).version).toBe(
+      '1.2.3',
+    );
     expect(fs.existsSync(metaPath(dir))).toBe(false);
   });
 

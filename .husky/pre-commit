@@ -1,3 +1,8 @@
-# The suite spawns the CLI per case, so it takes a few seconds. That is the
-# whole check: there is no lint step and no build step.
+# husky puts `node_modules/.bin` on the PATH and runs this with `sh -e`, so the
+# first failure stops the commit.
+#
+# Both tools sweep the whole repo rather than the staged files: it is a handful
+# of files and they finish in milliseconds. The suite is the slow part.
+oxlint
+oxfmt --check
 bun test

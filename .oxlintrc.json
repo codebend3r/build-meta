@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error"
+  },
+  "rules": {
+    "unicorn/prefer-node-protocol": "error",
+    "unicorn/prefer-string-replace-all": "error",
+    "unicorn/prefer-string-raw": "error",
+    "eslint/require-unicode-regexp": "error"
+  },
+  "ignorePatterns": ["node_modules"]
+}

@@ -88,7 +88,7 @@ describe('meta.json contents', () => {
     const meta = readMeta(dir);
     expect(meta.lastCommitAuthor).toBe('Ada Lovelace');
     expect(meta.lastCommitHash).toBe(git(dir, ['rev-parse', 'HEAD']));
-    expect(meta.lastCommitHash).toMatch(/^[0-9a-f]{40}$/);
+    expect(meta.lastCommitHash).toMatch(/^[0-9a-f]{40}$/u);
   });
 
   it('formats the file with two-space indentation and a trailing newline', () => {
@@ -97,7 +97,7 @@ describe('meta.json contents', () => {
     run(dir, ['--src-folder', 'src']);
 
     const contents = fs.readFileSync(metaPath(dir), 'utf8');
-    expect(contents).toMatch(/^\{\n  "version": "1\.2\.3",\n/);
+    expect(contents).toMatch(/^\{\n  "version": "1\.2\.3",\n/u);
     expect(contents.endsWith('}\n')).toBe(true);
   });
 
@@ -113,7 +113,10 @@ describe('meta.json contents', () => {
     const meta = readMeta(dir);
     for (const [key, value] of Object.entries(meta)) {
       expect(result.stdout).toMatch(
-        new RegExp(`${key}: ['"]${value.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}['"]`),
+        new RegExp(
+          `${key}: ['"]${value.replaceAll(/[.*+?^${}()|[\]\\/]/gu, String.raw`\$&`)}['"]`,
+          'u',
+        ),
       );
     }
   });

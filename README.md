@@ -76,7 +76,7 @@ Only the first case is handled with a friendly message; the rest surface as unca
 bun test
 ```
 
-Bun is pinned for the repo in `.bun-version`. The suite itself pulls in nothing; run `bun install` once to get the `husky` git hooks, which run the suite on `pre-commit` and check the commit message format on `commit-msg`. Each test builds a temporary project with its own git repository and runs the CLI against it, so it checks the file that actually ships rather than an importable copy of its logic.
+Bun is pinned for the repo in `.bun-version`. The suite itself pulls in nothing; run `bun install` once to get the devDependencies and the `husky` git hooks. `pre-commit` runs `bun run lint` (`oxlint`), `bun run format:check` (`oxfmt`) and the suite, and `commit-msg` checks the commit message format. Each test builds a temporary project with its own git repository and runs the CLI against it, so it checks the file that actually ships rather than an importable copy of its logic.
 
 The child processes are spawned with `process.execPath`, which is the Bun binary under `bun test`. The one place the runtime shows through is the object the CLI prints to stdout: Bun quotes string values with `"` where Node uses `'`, so that assertion accepts either.
 

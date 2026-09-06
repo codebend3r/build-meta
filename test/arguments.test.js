@@ -14,7 +14,7 @@ describe('argument parsing', () => {
     const result = run(dir, []);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/^build-meta: --src-folder <dir> is required\n$/);
+    expect(result.stderr).toMatch(/^build-meta: --src-folder <dir> is required\n$/u);
     expect(fs.existsSync(metaPath(dir))).toBe(false);
   });
 
@@ -42,7 +42,7 @@ describe('argument parsing', () => {
     const result = run(dir, ['--src-folder']);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/Option '--src-folder <value>' argument missing/);
+    expect(result.stderr).toMatch(/Option '--src-folder <value>' argument missing/u);
     expect(fs.existsSync(metaPath(dir))).toBe(false);
   });
 
@@ -54,7 +54,7 @@ describe('argument parsing', () => {
     const result = run(dir, ['--src-folder', 'src', '--srcFolder', 'src']);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/Unknown option '--srcFolder'/);
+    expect(result.stderr).toMatch(/Unknown option '--srcFolder'/u);
     expect(fs.existsSync(metaPath(dir))).toBe(false);
   });
 
@@ -65,7 +65,7 @@ describe('argument parsing', () => {
     const result = run(dir, ['src']);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/positional/i);
+    expect(result.stderr).toMatch(/positional/iu);
     expect(fs.existsSync(metaPath(dir))).toBe(false);
   });
 });

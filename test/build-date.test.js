@@ -2,13 +2,7 @@
 
 const { afterAll, describe, expect, it } = require('bun:test');
 
-const {
-  cleanup,
-  makeProject,
-  readMeta,
-  run,
-  torontoStampsBetween,
-} = require('./helpers');
+const { cleanup, makeProject, readMeta, run, torontoStampsBetween } = require('./helpers');
 
 afterAll(cleanup);
 
@@ -21,7 +15,7 @@ describe('buildDate', () => {
     run(dir, ['--src-folder', 'src']);
 
     expect(readMeta(dir).buildDate).toMatch(
-      /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])-\d{4} (0[1-9]|1[0-2]):[0-5]\d:[0-5]\d (AM|PM) ET$/,
+      /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])-\d{4} (0[1-9]|1[0-2]):[0-5]\d:[0-5]\d (AM|PM) ET$/u,
     );
   });
 

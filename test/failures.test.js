@@ -18,7 +18,7 @@ describe('failure modes', () => {
     const result = run(dir, ['--src-folder', 'src']);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/Cannot find module .*package\.json/);
+    expect(result.stderr).toMatch(/Cannot find module .*package\.json/u);
     expect(fs.existsSync(metaPath(dir))).toBe(false);
   });
 
@@ -30,7 +30,7 @@ describe('failure modes', () => {
     const result = run(dir, ['--src-folder', 'src']);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/not a git repository/i);
+    expect(result.stderr).toMatch(/not a git repository/iu);
     expect(fs.existsSync(metaPath(dir))).toBe(false);
   });
 
@@ -40,7 +40,7 @@ describe('failure modes', () => {
     const result = run(dir, ['--src-folder', 'src'], { PATH: '/nonexistent' });
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/git.*not found/i);
+    expect(result.stderr).toMatch(/git.*not found/iu);
     expect(fs.existsSync(metaPath(dir))).toBe(false);
   });
 
@@ -51,7 +51,7 @@ describe('failure modes', () => {
     const result = run(dir, ['--src-folder', 'src']);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/ENOENT/);
+    expect(result.stderr).toMatch(/ENOENT/u);
     expect(fs.existsSync(path.join(dir, 'src'))).toBe(false);
   });
 
@@ -62,7 +62,7 @@ describe('failure modes', () => {
     const result = run(dir, ['--src-folder', 'notes.txt']);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/ENOTDIR/);
+    expect(result.stderr).toMatch(/ENOTDIR/u);
     expect(fs.readFileSync(path.join(dir, 'notes.txt'), 'utf8')).toBe('not a folder\n');
   });
 
@@ -73,8 +73,8 @@ describe('failure modes', () => {
 
     const result = run(dir, ['--src-folder', 'src']);
 
-    expect(result.stderr).toMatch(/ENOENT.*meta\.json/s);
-    expect(result.stderr).not.toMatch(/not a git repository/i);
+    expect(result.stderr).toMatch(/ENOENT.*meta\.json/su);
+    expect(result.stderr).not.toMatch(/not a git repository/iu);
     expect(result.stdout).toBe('');
   });
 });

@@ -16,6 +16,9 @@
   },
   "scripts": {
     "test": "bun test",
+    "lint": "oxlint",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
     "prepare": "husky"
   },
   "files": [
@@ -26,6 +29,8 @@
     "build-meta": "bin/build-meta.js"
   },
   "devDependencies": {
-    "husky": "9.1.7"
+    "husky": "9.1.7",
+    "oxfmt": "0.66.0",
+    "oxlint": "1.81.0"
   }
 }

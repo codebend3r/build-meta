@@ -6,11 +6,11 @@ CLI that writes a `meta.json` (version, build date, env, git branch, last commit
 
 All logic lives in `bin/build-meta.js`, a single CJS file. There is no build step and no source directory.
 
-Tests live in `test/`, one file per area, with shared fixtures in `test/helpers.js`. They use `bun:test` and no test framework; `husky` is the only devDependency the repo carries. The CLI does all its work at module load, so every test spawns `bin/build-meta.js` in a child process against a throwaway git repo under the OS temp directory. Under `bun test` that child runs on the Bun binary, since the fixtures spawn `process.execPath`.
+Tests live in `test/`, one file per area, with shared fixtures in `test/helpers.js`. They use `bun:test` and no test framework. The CLI does all its work at module load, so every test spawns `bin/build-meta.js` in a child process against a throwaway git repo under the OS temp directory. Under `bun test` that child runs on the Bun binary, since the fixtures spawn `process.execPath`.
 
 ## Constraints
 
-- Zero runtime dependencies. Keep it that way; use the stdlib. `husky` is the one devDependency, for git hooks, and nothing it installs reaches the published package.
+- Zero runtime dependencies. Keep it that way; use the stdlib. The devDependencies are `husky`, `oxlint` and `oxfmt`; none of them reach the published package, which is still `bin/` plus `CHANGES.md`.
 - Bun is the toolchain: `bun test` runs the suite, `bunfig.toml` holds the install config, and `.bun-version` pins the version.
 - The shipped CLI stays runtime-agnostic. `bin/build-meta.js` keeps its `#!/usr/bin/env node` shebang and stdlib-only CommonJS so published consumers do not need Bun; `engines` documents both (`bun >=1.3.0`, `node >=24.0.0`), and `git` must be on the PATH.
 - Reads `package.json` and resolves `--src-folder` from the current working directory, not the git root.
@@ -28,11 +28,20 @@ bun bin/build-meta.js --src-folder <existing-dir>
 bun test
 ```
 
+## Lint and format
+
+`oxlint` and `oxfmt` own this, configured in `.oxlintrc.json` and `.oxfmtrc.json`. Run them with `bun run lint`, `bun run format` and `bun run format:check`.
+
+- oxlint runs the `correctness`, `suspicious` and `perf` categories, which the repo passes clean, plus `unicorn/prefer-node-protocol`, `unicorn/prefer-string-replace-all`, `unicorn/prefer-string-raw` and `eslint/require-unicode-regexp`
+- `pedantic` and `style` stay off on purpose. They demand ESM over the CommonJS the CLI has to ship, ban the sync `fs` and `execSync` calls the whole design rests on, want `0` and `1` exit codes hoisted into named constants, and want every comment capitalized
+- `oxfmt` is set to `singleQuote` at a 100 column width to match the existing code, and ignores `**/*.md` and `**/*.json` so the prose files and `package.json` stay hand written
+- every regex needs a `u` flag, per `eslint/require-unicode-regexp`
+
 ## Git hooks
 
 `husky` owns the hooks in `.husky/`, wired through `core.hooksPath`. A fresh clone gets them from `bun install`, which runs the `prepare` script.
 
-- `pre-commit` runs `bun test`
+- `pre-commit` runs `oxlint`, `oxfmt --check` and `bun test`, over the whole repo rather than the staged files
 - `commit-msg` enforces the `## Commits` rules: the `BM:` subject prefix, no agent attribution, no em or en dashes. `Merge`, `Revert`, `fixup!`, `squash!` and `amend!` subjects are exempt from the prefix check
 - `git commit --no-verify` skips both, for a deliberate work-in-progress commit
 

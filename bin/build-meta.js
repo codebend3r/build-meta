@@ -8,10 +8,10 @@
 // Stdlib only. Adding a runtime dependency is a deliberate regression: the
 // whole point of the rewrite was to drop the eight packages 0.0.12 shipped.
 
-const { execSync } = require('child_process');
-const { writeFileSync } = require('fs');
-const path = require('path');
-const { parseArgs } = require('util');
+const { execSync } = require('node:child_process');
+const { writeFileSync } = require('node:fs');
+const path = require('node:path');
+const { parseArgs } = require('node:util');
 
 // parseArgs is strict by default, which is what we want: an unknown flag or a
 // stray positional throws instead of being silently ignored. That means there
@@ -45,8 +45,13 @@ const git = (args) =>
 function buildDate() {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/Toronto',
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
   }).formatToParts(new Date());
   const p = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
   return `${p.month}-${p.day}-${p.year} ${p.hour}:${p.minute}:${p.second} ${p.dayPeriod} ET`;
