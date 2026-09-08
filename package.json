@@ -1,6 +1,6 @@
 {
   "name": "build-meta",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Writes a meta.json with the package version, build date, environment, git branch, and last commit for the current project",
   "author": "CJ Rivas <cj.rivas.dev@gmail.com>",
   "contributors": [
