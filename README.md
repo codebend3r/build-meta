@@ -242,4 +242,4 @@ Two workflows live in `.github/workflows/`. `pull-request-checks.yml` runs lint,
 
 ### Notes on the suite
 
-The suite spawns the compiled CLI in a child process against throwaway git repositories under the OS temp directory, because the CLI does all its work at module load. The generated `meta.js` is loaded for real in a child process and the global read back, and the generated `meta.d.ts` is compiled with `tsgo` against sample consumer code, rather than either being pattern matched as text.
+The suite spawns the compiled CLI in a child process against throwaway git repositories under the OS temp directory, because the CLI does all its work at module load. The generated `meta.js` is loaded for real in a child process and the global read back, both ways this page documents loading it: as a side-effect `require`, and as a `<script>` tag, which is the only one of the two that can see whether the file leaked anything into the page's global scope. The generated `meta.d.ts` is compiled with `tsgo` against sample consumer code. Neither artifact is pattern matched as text.

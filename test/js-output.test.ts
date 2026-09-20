@@ -77,18 +77,33 @@ describe('meta.js', () => {
     expect(loadMetaJs(jsPath(dir))).toMatchObject({ version: '1.2.3' });
   });
 
+  // The other half of the README: a <script src> tag, where the file is
+  // evaluated in the page's global scope with no module wrapper around it.
+  it('installs the meta when evaluated as a script tag', () => {
+    const dir = makeProject();
+
+    run(dir, ['--src-folder', 'src']);
+
+    expect(loadMetaJs(jsPath(dir), { window: true, as: 'script' })).toMatchObject({
+      version: '1.2.3',
+    });
+  });
+
   // Wrapped in an IIFE, so the local it uses to pick a global does not become a
-  // property of the page's global scope.
+  // property of the page's global scope. The probe has to run after the load to
+  // mean anything, and under a script tag rather than a require: the CommonJS
+  // wrapper would contain a stray `var` on its own and hide the very thing
+  // being asserted.
   it('leaks nothing but the build-meta key', () => {
     const dir = makeProject();
 
     run(dir, ['--src-folder', 'src']);
 
-    const file = jsPath(dir);
     expect(
-      loadMetaJs(file, {
+      loadMetaJs(jsPath(dir), {
         window: true,
-        existing: `globalThis.g === undefined ? 'clean' : 'leaked'`,
+        as: 'script',
+        report: `globalThis.g === undefined ? 'clean' : 'leaked'`,
       }),
     ).toBe('clean');
   });

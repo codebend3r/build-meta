@@ -1,6 +1,6 @@
-# Enforces the rules in `.claude/skills/commit-format/SKILL.md`. There is no
-# `.github/` directory and nothing in CI checks any of this, so this hook is
-# the only gate a bad message hits.
+# Enforces the rules in `.claude/skills/commit-format/SKILL.md`. The workflows
+# in `.github/` check the code and never the prose, so this hook is the only
+# gate a bad message hits.
 
 msg_file="$1"
 

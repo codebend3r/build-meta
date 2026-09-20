@@ -145,21 +145,48 @@ export type LoadOptions = {
   // A JavaScript expression to install under the key before the artifact
   // loads, for the case where something else got there first.
   existing?: string;
+  // How the artifact is evaluated. 'require' is the `import './meta.js'` half
+  // of the README, where the CommonJS wrapper gives the file a scope of its
+  // own. 'script' is the `<script src>` half, where there is no wrapper and a
+  // stray top level `var` would land on the page's global object. Only the
+  // second can observe a leak, so it is the one the leak assertion uses.
+  as?: 'require' | 'script';
+  // The expression read back once the artifact has loaded. It defaults to the
+  // installed global, which is what almost every caller wants; the leak
+  // assertion overrides it to inspect the rest of the global scope instead.
+  report?: string;
 };
 
-// Loads the emitted meta.js the way a page would and reports back whatever it
-// installed. The artifact is required for real rather than pattern matched,
-// because the thing under test is that it is valid script which assigns the
-// right value, and a regex over the text proves neither.
-export function loadMetaJs(file: string, { window = false, existing }: LoadOptions = {}): unknown {
+// Loads the emitted meta.js the way a page would and reports back whatever the
+// `report` expression sees afterwards. The artifact is evaluated for real
+// rather than pattern matched, because the thing under test is that it is valid
+// script which assigns the right value, and a regex over the text proves
+// neither.
+export function loadMetaJs(
+  file: string,
+  {
+    window = false,
+    existing,
+    as = 'require',
+    report = `globalThis['build-meta']`,
+  }: LoadOptions = {},
+): unknown {
+  // runInThisContext evaluates the file in the global scope, with no module
+  // wrapper, which is exactly what a browser does for a <script src>. require
+  // wraps it in a function instead, so a top level `var` stays private there no
+  // matter what the artifact looks like.
+  const load =
+    as === 'script'
+      ? `require('node:vm').runInThisContext(require('node:fs').readFileSync(${JSON.stringify(file)}, 'utf8'));`
+      : `require(${JSON.stringify(file)});`;
   const loader = path.join(tempDir(), 'loader.cjs');
   fs.writeFileSync(
     loader,
     [
       window ? 'globalThis.window = globalThis;' : '',
       existing ? `globalThis['build-meta'] = ${existing};` : '',
-      `require(${JSON.stringify(file)});`,
-      `process.stdout.write(JSON.stringify(globalThis['build-meta']) ?? 'undefined');`,
+      load,
+      `process.stdout.write(JSON.stringify(${report}) ?? 'undefined');`,
     ].join('\n'),
   );
   const result = spawnSync(process.execPath, [loader], { encoding: 'utf8', env: cleanEnv() });
