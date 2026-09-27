@@ -64,6 +64,37 @@ describe('meta contents', () => {
     expect(readMetaJs(dir).branchName).toBe('HEAD');
   });
 
+  it('takes the branch from the CI environment when detached', () => {
+    const dir = makeProject();
+    git(dir, ['checkout', '-q', '--detach']);
+
+    run(dir, ['--src-folder', 'src'], { GITHUB_REF_NAME: 'feature/ci' });
+
+    expect(readMetaJs(dir).branchName).toBe('feature/ci');
+  });
+
+  // On a pull_request event GITHUB_REF_NAME is "<number>/merge", so the head
+  // ref has to win when both are set.
+  it('prefers GITHUB_HEAD_REF over GITHUB_REF_NAME', () => {
+    const dir = makeProject();
+    git(dir, ['checkout', '-q', '--detach']);
+
+    run(dir, ['--src-folder', 'src'], {
+      GITHUB_HEAD_REF: 'feature/pr',
+      GITHUB_REF_NAME: '12/merge',
+    });
+
+    expect(readMetaJs(dir).branchName).toBe('feature/pr');
+  });
+
+  it('ignores the CI environment when a branch is checked out', () => {
+    const dir = makeProject({ branch: 'main' });
+
+    run(dir, ['--src-folder', 'src'], { GITHUB_REF_NAME: 'something-else' });
+
+    expect(readMetaJs(dir).branchName).toBe('main');
+  });
+
   it('records the author and full hash of the last commit', () => {
     const dir = makeProject({ author: 'Ada Lovelace' });
     git(dir, ['commit', '-q', '--allow-empty', '-m', 'second commit']);
@@ -76,13 +107,77 @@ describe('meta contents', () => {
     expect(meta.lastCommitHash).toMatch(/^[0-9a-f]{40}$/u);
   });
 
+  // Committed with a fixed committer date in a non-UTC offset, to prove the
+  // value is the commit's own time and that it comes back normalised to UTC.
+  it('records the last commit date in UTC', () => {
+    const dir = makeProject();
+    git(dir, ['commit', '-q', '--allow-empty', '-m', 'dated commit'], {
+      GIT_COMMITTER_DATE: '2024-03-10T09:30:00-05:00',
+    });
+
+    run(dir, ['--src-folder', 'src']);
+
+    expect(readMetaJs(dir).lastCommitDateISO).toBe('2024-03-10T14:30:00.000Z');
+  });
+
+  it('is not dirty on a clean checkout', () => {
+    const dir = makeProject();
+
+    run(dir, ['--src-folder', 'src']);
+
+    expect(readMetaJs(dir).dirty).toBe(false);
+  });
+
+  it('is dirty when a tracked file has uncommitted changes', () => {
+    const dir = makeProject();
+    writePkg(dir, { name: 'fixture', version: '1.2.4' });
+
+    run(dir, ['--src-folder', 'src']);
+
+    const meta = readMetaJs(dir);
+    expect(meta.dirty).toBe(true);
+    expect(meta.describe).toEndWith('-dirty');
+  });
+
+  // Untracked files are left out, so dirty agrees with describe's suffix.
+  it('is not dirty for untracked files alone', () => {
+    const dir = makeProject();
+    fs.writeFileSync(path.join(dir, 'scratch.txt'), 'untracked\n');
+
+    run(dir, ['--src-folder', 'src']);
+
+    const meta = readMetaJs(dir);
+    expect(meta.dirty).toBe(false);
+    expect(meta.describe).not.toEndWith('-dirty');
+  });
+
+  it('describes the commit relative to the nearest tag', () => {
+    const dir = makeProject();
+    git(dir, ['tag', 'v1.0.0']);
+    git(dir, ['commit', '-q', '--allow-empty', '-m', 'after the tag']);
+
+    run(dir, ['--src-folder', 'src']);
+
+    const meta = readMetaJs(dir);
+    expect(meta.describe).toMatch(/^v1\.0\.0-1-g[0-9a-f]{7,}$/u);
+    expect(meta.lastCommitHash.startsWith(meta.describe.split('-g')[1])).toBe(true);
+  });
+
+  it('describes with the abbreviated hash when there are no tags', () => {
+    const dir = makeProject();
+
+    run(dir, ['--src-folder', 'src']);
+
+    const meta = readMetaJs(dir);
+    expect(meta.describe).toMatch(/^[0-9a-f]{7,}$/u);
+    expect(meta.lastCommitHash.startsWith(meta.describe)).toBe(true);
+  });
+
   // The CLI hands the object to console.info, so the quoting is the runtime's
   // to choose: bun renders string values with double quotes where node uses
   // single ones. Both are accepted, the assertion is about the values.
   //
-  // Every value the CLI writes is a string, and JSON has no undefined, so the
-  // entries of the meta read back are string pairs even though Meta marks
-  // `version` optional.
+  // Strings are quoted and the one boolean, `dirty`, is printed bare.
   it('prints the same object to stdout and leaves stderr empty', () => {
     const dir = makeProject();
 
@@ -90,13 +185,12 @@ describe('meta contents', () => {
 
     expect(result.stderr).toBe('');
     const meta = readMetaJs(dir);
-    for (const [key, value] of Object.entries(meta) as [string, string][]) {
-      expect(result.stdout).toMatch(
-        new RegExp(
-          `${key}: ['"]${value.replaceAll(/[.*+?^${}()|[\]\\/]/gu, String.raw`\$&`)}['"]`,
-          'u',
-        ),
-      );
+    for (const [key, value] of Object.entries(meta) as [string, string | boolean][]) {
+      const printed =
+        typeof value === 'boolean'
+          ? String(value)
+          : `['"]${value.replaceAll(/[.*+?^${}()|[\]\\/]/gu, String.raw`\$&`)}['"]`;
+      expect(result.stdout).toMatch(new RegExp(`${key}: ${printed}`, 'u'));
     }
   });
 });

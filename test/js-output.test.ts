@@ -49,7 +49,10 @@ describe('meta.js', () => {
       'buildEnv',
       'branchName',
       'lastCommitAuthor',
+      'lastCommitDateISO',
       'lastCommitHash',
+      'dirty',
+      'describe',
     ]);
   });
 

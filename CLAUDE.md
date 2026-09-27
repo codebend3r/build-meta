@@ -1,6 +1,6 @@
 # build-meta
 
-CLI that writes a `meta.js` (version, build date, ISO build date, env, git branch, last commit) and a `meta.d.ts` into a target folder. The script installs the object on `window['build-meta']`, falling back to `globalThis`, and never overwrites an existing value. The declaration is a global script, never a module, so the `Window` augmentation stays global; its fields come from the same object, so it cannot promise a key the script does not emit. A `meta.json` is opt in via `--output-json`, or `--json-out-dir <dir>` which implies it and defaults to the working directory.
+CLI that writes a `meta.js` (version, build date, ISO build date, env, git branch, last commit author, date and hash, a `dirty` flag, and a `git describe` string) and a `meta.d.ts` into a target folder. The script installs the object on `window['build-meta']`, falling back to `globalThis`, and never overwrites an existing value. The declaration is a global script, never a module, so the `Window` augmentation stays global; its fields come from the same object, so it cannot promise a key the script does not emit. A `meta.json` is opt in via `--output-json`, or `--json-out-dir <dir>` which implies it and defaults to the working directory.
 
 ## Ask first
 
@@ -23,6 +23,8 @@ Tests live in `test/`, one file per area, with shared fixtures in `test/helpers.
 - Reads `package.json` and resolves `--src-folder` and `--json-out-dir` from the current working directory, not the git root.
 - `buildDate` is hardcoded to `America/Toronto`. `buildDateISO` is UTC, and both come from one `Date` so they cannot disagree.
 - Both outputs are serialized from a single in-memory object, so `meta.js` and `meta.json` can never drift apart.
+- `dirty` is the one non-string field. The declaration types each field with `typeof` its value, so it stays `boolean` there. It ignores untracked files so it always agrees with the `-dirty` suffix on `describe`.
+- `branchName` falls back to `GITHUB_HEAD_REF`, `GITHUB_REF_NAME`, `CI_COMMIT_REF_NAME`, `VERCEL_GIT_COMMIT_REF` and `BRANCH` only when git reports a detached `HEAD`. The `run` test helper strips those variables, because CI sets them for the suite itself.
 
 ## Run it
 

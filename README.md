@@ -1,6 +1,6 @@
 # build-meta
 
-Stamps a build with its own provenance: package version, build date, environment, git branch, and the last commit's author and hash.
+Stamps a build with its own provenance: package version, build date, environment, git branch, the last commit's author, date and hash, whether the tree was dirty, and a `git describe` string.
 
 By default it writes a `meta.js` that installs the metadata on `window['build-meta']` when the page loads, plus a `meta.d.ts` that types it, so nothing has to be imported or wired up by hand. A `meta.json` is available too, on request.
 
@@ -100,7 +100,10 @@ Here is the generated file in full:
     "buildEnv": "production",
     "branchName": "main",
     "lastCommitAuthor": "CJ Rivas",
-    "lastCommitHash": "907761dd591f6bc3a69a514092acfb8c147b73cf"
+    "lastCommitDateISO": "2026-09-06T15:10:04.000Z",
+    "lastCommitHash": "907761dd591f6bc3a69a514092acfb8c147b73cf",
+    "dirty": false,
+    "describe": "v1.2.3-4-g907761d"
   };
 })();
 ```
@@ -118,7 +121,10 @@ type BuildMeta = {
   buildEnv: string;
   branchName: string;
   lastCommitAuthor: string;
+  lastCommitDateISO: string;
   lastCommitHash: string;
+  dirty: boolean;
+  describe: string;
 };
 
 interface Window {
@@ -136,7 +142,7 @@ function report(meta: BuildMeta): string {
 }
 ```
 
-The key is optional because nothing guarantees the script has loaded by the time your code reads it. `BuildMeta` describes the object that was actually emitted, so a `package.json` with no `version` produces types with no `version` either, rather than promising a field that is not there. It is a type alias; `Window` is the one interface, because augmenting the DOM's `Window` is declaration merging and only interfaces merge.
+The key is optional because nothing guarantees the script has loaded by the time your code reads it. `BuildMeta` describes the object that was actually emitted, so a `package.json` with no `version` produces types with no `version` either, rather than promising a field that is not there. Each field is typed from its value, so `dirty` is a `boolean` and everything else is a `string`. It is a type alias; `Window` is the one interface, because augmenting the DOM's `Window` is declaration merging and only interfaces merge.
 
 ## The meta object
 
@@ -146,15 +152,19 @@ The key is optional because nothing guarantees the script has loaded by the time
 | `buildDate` | `"09-06-2026 12:42:23 PM ET"` | Wall clock reading in `America/Toronto`, for a human to read. |
 | `buildDateISO` | `"2026-09-06T16:42:23.349Z"` | The same instant in UTC ISO-8601, for `Date.parse` and for sorting. |
 | `buildEnv` | `"production"` | `--env`, else `NODE_ENV`, else `PROFILE`, else `development`. |
-| `branchName` | `"main"` | `git rev-parse --abbrev-ref HEAD`. |
+| `branchName` | `"main"` | `git rev-parse --abbrev-ref HEAD`, falling back to the CI environment when detached. |
 | `lastCommitAuthor` | `"CJ Rivas"` | `git log -1 --format=%an`. |
+| `lastCommitDateISO` | `"2026-09-06T15:10:04.000Z"` | `git log -1 --format=%cI`, the committer date, normalized to UTC ISO-8601. |
 | `lastCommitHash` | `"907761d…"` | `git rev-parse HEAD`, the full 40 characters. |
+| `dirty` | `false` | `true` when tracked files have uncommitted changes (`git status --porcelain --untracked-files=no`). The only non-string field. |
+| `describe` | `"v1.2.3-4-g907761d"` | `git describe --tags --always --dirty`. The abbreviated hash when the repository has no tags. |
 
 A few consequences of those sources:
 
 - `version` is read from the `package.json` in the current working directory, not from the git root and not from build-meta's own package. In a monorepo, run it from the package you want described.
 - `buildDate` is always Eastern Time. The timezone and the format are hardcoded so that stamps from different machines and CI regions stay comparable; `buildDateISO` is the one to compute with.
-- `branchName` is the literal string `HEAD` when the repository is in a detached HEAD state. Many CI systems check out a detached commit, so expect `"branchName": "HEAD"` there unless a branch is checked out explicitly.
+- `branchName` falls back to the CI environment when the repository is in a detached HEAD state, as most CI checkouts are. It tries `GITHUB_HEAD_REF`, `GITHUB_REF_NAME`, `CI_COMMIT_REF_NAME`, `VERCEL_GIT_COMMIT_REF` and `BRANCH` in that order, and is the literal string `HEAD` only when none is set. On a GitHub tag push `GITHUB_REF_NAME` is the tag, so that is what it reports.
+- `dirty` ignores untracked files, so it always agrees with the `-dirty` suffix on `describe`. A generated `meta.js` that is committed to the repository makes the next build dirty, so keep the generated files out of version control.
 
 The same object is printed to stdout on every run.
 
@@ -182,7 +192,10 @@ build-meta --src-folder src --json-out-dir public
   "buildEnv": "production",
   "branchName": "main",
   "lastCommitAuthor": "CJ Rivas",
-  "lastCommitHash": "907761dd591f6bc3a69a514092acfb8c147b73cf"
+  "lastCommitDateISO": "2026-09-06T15:10:04.000Z",
+  "lastCommitHash": "907761dd591f6bc3a69a514092acfb8c147b73cf",
+  "dirty": false,
+  "describe": "v1.2.3-4-g907761d"
 }
 ```
 

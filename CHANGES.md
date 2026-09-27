@@ -1,3 +1,13 @@
+Unreleased
+==========
+
+ * added `lastCommitDateISO`, `dirty` and `describe` to the meta (CJ Rivas)
+
+ * `branchName` falls back to the CI environment on a detached checkout (CJ Rivas)
+
+ * `meta.d.ts` types each field from its value, so `dirty` is a `boolean` (CJ Rivas)
+
+
 2019-05-08, Version 0.0.12
 ==========================
 

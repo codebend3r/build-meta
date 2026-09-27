@@ -11,8 +11,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-// The keys the CLI writes, all string valued. `version` is optional because a
-// package.json without one leaves it undefined and JSON.stringify drops it.
+// The keys the CLI writes, all string valued but `dirty`. `version` is optional
+// because a package.json without one leaves it undefined and JSON.stringify
+// drops it.
 export type Meta = {
   version?: string;
   buildDate: string;
@@ -20,7 +21,10 @@ export type Meta = {
   buildEnv: string;
   branchName: string;
   lastCommitAuthor: string;
+  lastCommitDateISO: string;
   lastCommitHash: string;
+  dirty: boolean;
+  describe: string;
 };
 
 // Only the fields the fixtures set. A fixture package.json is otherwise free
@@ -61,11 +65,11 @@ function cleanEnv(extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
   return { ...Object.fromEntries(inherited), ...GIT_ENV, ...extra };
 }
 
-export function git(cwd: string, args: string[]): string {
+export function git(cwd: string, args: string[], env: NodeJS.ProcessEnv = {}): string {
   const result = spawnSync('git', args, {
     cwd,
     encoding: 'utf8',
-    env: cleanEnv(),
+    env: cleanEnv(env),
   });
   if (result.status !== 0) {
     throw new Error(`git ${args.join(' ')} failed in ${cwd}\n${result.stderr}`);
@@ -106,7 +110,8 @@ export function writePkg(dir: string, pkg: FixturePkg): void {
 }
 
 // NODE_ENV and PROFILE are stripped so the buildEnv fallback chain starts from
-// a known state no matter what the test runner was launched with.
+// a known state no matter what the test runner was launched with, and the CI
+// branch variables likewise, since CI sets them for the suite itself.
 //
 // process.execPath is the bun binary under `bun test`, so this exercises the
 // CLI on the runtime the repo now develops against. The compiled file is
@@ -117,8 +122,17 @@ export function run(
   env: NodeJS.ProcessEnv = {},
 ): SpawnSyncReturns<string> {
   const base = cleanEnv({ GIT_CEILING_DIRECTORIES: TMP_ROOT });
-  delete base.NODE_ENV;
-  delete base.PROFILE;
+  for (const key of [
+    'NODE_ENV',
+    'PROFILE',
+    'GITHUB_HEAD_REF',
+    'GITHUB_REF_NAME',
+    'CI_COMMIT_REF_NAME',
+    'VERCEL_GIT_COMMIT_REF',
+    'BRANCH',
+  ]) {
+    delete base[key];
+  }
   return spawnSync(process.execPath, [CLI, ...args], {
     cwd,
     encoding: 'utf8',

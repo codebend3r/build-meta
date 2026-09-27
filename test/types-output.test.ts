@@ -44,13 +44,34 @@ describe('meta.d.ts', () => {
        const buildEnv: string | undefined = meta?.buildEnv;
        const branchName: string | undefined = meta?.branchName;
        const lastCommitAuthor: string | undefined = meta?.lastCommitAuthor;
+       const lastCommitDateISO: string | undefined = meta?.lastCommitDateISO;
        const lastCommitHash: string | undefined = meta?.lastCommitHash;
-       void [version, buildDate, buildDateISO, buildEnv, branchName, lastCommitAuthor, lastCommitHash];
+       const dirty: boolean | undefined = meta?.dirty;
+       const describe: string | undefined = meta?.describe;
+       void [version, buildDate, buildDateISO, buildEnv, branchName, lastCommitAuthor,
+         lastCommitDateISO, lastCommitHash, dirty, describe];
       `,
     );
 
     expect(result.stdout + result.stderr).toBe('');
     expect(result.status).toBe(0);
+  });
+
+  // Typed from the value, so a consumer cannot treat the flag as a string and
+  // test it against 'false', which would always be truthy.
+  it('types dirty as a boolean, not a string', () => {
+    const dir = makeProject();
+
+    run(dir, ['--src-folder', 'src']);
+
+    const result = typecheck(
+      dir,
+      'src',
+      `const dirty: string | undefined = window['build-meta']?.dirty;\n`,
+    );
+
+    expect(result.status).not.toBe(0);
+    expect(result.stdout + result.stderr).toMatch(/boolean/u);
   });
 
   // The key is optional, because nothing guarantees the script was loaded
