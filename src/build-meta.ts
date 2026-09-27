@@ -116,6 +116,12 @@ function buildDate(at: Date): string {
 // disagree by a second when the run straddles a tick.
 const now = new Date();
 
+// Uncommitted changes to tracked files, which means lastCommitHash does not
+// fully describe what was built. Worked out once and reused for describe's
+// suffix, so the two fields agree by construction. Untracked files are
+// ignored, matching what git describe --dirty itself would count.
+const dirty = git('status --porcelain --untracked-files=no') !== '';
+
 const meta: Meta = {
   // Throws if the working directory has no package.json, which is the intended
   // signal that build-meta was invoked from the wrong place. A package.json
@@ -134,13 +140,10 @@ const meta: Meta = {
   // Normalised to UTC so it reads exactly like buildDateISO.
   lastCommitDateISO: new Date(git('log -1 --format=%cI')).toISOString(),
   lastCommitHash: git('rev-parse HEAD'),
-  // Uncommitted changes to tracked files, which means lastCommitHash does not
-  // fully describe what was built. Untracked files are ignored so this always
-  // agrees with the -dirty suffix on describe below.
-  dirty: git('status --porcelain --untracked-files=no') !== '',
+  dirty,
   // e.g. v1.2.3-4-g907761d-dirty. --always falls back to the abbreviated hash
   // in a repository with no tags, so this never fails where the others work.
-  describe: git('describe --tags --always --dirty'),
+  describe: git('describe --tags --always') + (dirty ? '-dirty' : ''),
 };
 
 // Serialized once. The script and the JSON file are two spellings of the same

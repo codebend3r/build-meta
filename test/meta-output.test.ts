@@ -139,7 +139,7 @@ describe('meta contents', () => {
     expect(meta.describe).toEndWith('-dirty');
   });
 
-  // Untracked files are left out, so dirty agrees with describe's suffix.
+  // Untracked files are left out, the same as git describe --dirty.
   it('is not dirty for untracked files alone', () => {
     const dir = makeProject();
     fs.writeFileSync(path.join(dir, 'scratch.txt'), 'untracked\n');

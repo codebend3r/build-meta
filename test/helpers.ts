@@ -55,14 +55,13 @@ const GIT_ENV = {
   GIT_TERMINAL_PROMPT: '0',
 };
 
-// Git exports GIT_AUTHOR_NAME, GIT_AUTHOR_DATE, GIT_INDEX_FILE and friends to
-// every hook it runs, and the `pre-commit` hook runs this suite. Inheriting
-// them would author the fixture commits as whoever is committing and point the
-// fixtures at the outer index, so every GIT_* variable is dropped and only the
-// ones the fixtures set themselves are put back.
+// Children get PATH and nothing else from the parent, plus what the fixtures
+// set on purpose. Git exports GIT_AUTHOR_NAME, GIT_INDEX_FILE and friends to
+// the `pre-commit` hook that runs this suite, and CI sets NODE_ENV, CI and
+// branch variables the CLI reads; an allowlist keeps every one of them out
+// without having to name them.
 function cleanEnv(extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
-  const inherited = Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_'));
-  return { ...Object.fromEntries(inherited), ...GIT_ENV, ...extra };
+  return { PATH: process.env.PATH, ...GIT_ENV, ...extra };
 }
 
 export function git(cwd: string, args: string[], env: NodeJS.ProcessEnv = {}): string {
@@ -109,9 +108,8 @@ export function writePkg(dir: string, pkg: FixturePkg): void {
   fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify(pkg, null, 2) + '\n');
 }
 
-// NODE_ENV and PROFILE are stripped so the buildEnv fallback chain starts from
-// a known state no matter what the test runner was launched with, and the CI
-// branch variables likewise, since CI sets them for the suite itself.
+// cleanEnv starts the buildEnv and branchName fallback chains from a known
+// state, whatever the test runner was launched with.
 //
 // process.execPath is the bun binary under `bun test`, so this exercises the
 // CLI on the runtime the repo now develops against. The compiled file is
@@ -121,22 +119,10 @@ export function run(
   args: string[] = [],
   env: NodeJS.ProcessEnv = {},
 ): SpawnSyncReturns<string> {
-  const base = cleanEnv({ GIT_CEILING_DIRECTORIES: TMP_ROOT });
-  for (const key of [
-    'NODE_ENV',
-    'PROFILE',
-    'GITHUB_HEAD_REF',
-    'GITHUB_REF_NAME',
-    'CI_COMMIT_REF_NAME',
-    'VERCEL_GIT_COMMIT_REF',
-    'BRANCH',
-  ]) {
-    delete base[key];
-  }
   return spawnSync(process.execPath, [CLI, ...args], {
     cwd,
     encoding: 'utf8',
-    env: { ...base, ...env },
+    env: cleanEnv({ GIT_CEILING_DIRECTORIES: TMP_ROOT, ...env }),
   });
 }
 
